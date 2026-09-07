@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book Appointment — Rapid Auto Service Center</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="page-hero">
+  <div class="page-hero-inner">
+    <div class="crumbs"><a href="index.html">Home</a> / Book Now</div>
+    <h1>Book Your Appointment</h1>
+    <p>Pick your vehicle, service, time slot and payment method - confirmed in under a minute.</p>
+  </div>
+</div>
+
+<section>
+  <div class="booking-box">
+    <div class="steps">
+      <div class="step active" id="stepInd1"><div class="dot">1</div>Vehicle</div>
+      <div class="step" id="stepInd2"><div class="dot">2</div>Service</div>
+      <div class="step" id="stepInd3"><div class="dot">3</div>Schedule</div>
+      <div class="step" id="stepInd4"><div class="dot">4</div>Payment</div>
+      <div class="step" id="stepInd5"><div class="dot">5</div>Confirm</div>
+    </div>
+
+    <div class="book-step" id="bstep1">
+      <div class="form-grid">
+        <div class="field"><label>Full Name</label><input id="bName" placeholder="e.g. Nimal Perera"></div>
+        <div class="field"><label>Phone Number</label><input id="bPhone" placeholder="07X XXX XXXX"></div>
+        <div class="field"><label>Email</label><input id="bEmail" placeholder="you@email.com"></div>
+        <div class="field"><label>Vehicle Registration No.</label><input id="bReg" placeholder="e.g. CAB-1234"></div>
+        <div class="field"><label>Vehicle Type</label>
+          <select id="bVehicleType" onchange="">
+            <option>Motorcycle</option><option>Car</option><option>Jeep/Vessel</option>
+            <option>Three Wheeler</option><option>Van (Small)</option><option>Van (Large)</option><option>Lorry</option>
+          </select>
+        </div>
+        <div class="field"><label>Brand / Model</label><input id="bModel" placeholder="e.g. Toyota Aqua"></div>
+      </div>
+      <div class="step-nav"><span></span><button class="btn btn-primary" onclick="goStep(2)">Next: Choose Service →</button></div>
+    </div>
+
+    <div class="book-step hide" id="bstep2">
+      <label style="margin-bottom:10px;">Select Service (filtered by your vehicle type)</label>
+      <div class="service-pick" id="serviceGrid"></div>
+      <div class="step-nav"><button class="btn btn-outline" style="color:var(--primary);border-color:var(--border);" onclick="goStep(1)">← Back</button><button class="btn btn-primary" onclick="goStep(3)">Next: Schedule →</button></div>
+    </div>
+
+    <div class="book-step hide" id="bstep3">
+      <div class="form-grid">
+        <div class="field"><label>Preferred Date</label><input type="date" id="bDate"></div>
+        <div class="field"><label>Notes (optional)</label><input id="bNotes" placeholder="Any special request"></div>
+      </div>
+      <label>Available Time Slots</label>
+      <div class="slot-grid" id="slotGrid"></div>
+      <div class="step-nav"><button class="btn btn-outline" style="color:var(--primary);border-color:var(--border);" onclick="goStep(2)">← Back</button><button class="btn btn-primary" onclick="goStep(4)">Next: Payment →</button></div>
+    </div>
+
+    <div class="book-step hide" id="bstep4">
+      <label style="margin-bottom:10px;">Choose Payment Method</label>
+      <div class="pay-methods" id="payGrid">
+        <div class="pay-opt" data-m="PayPal" onclick="selectPay(this)"><div class="em">🅿️</div>PayPal</div>
+        <div class="pay-opt" data-m="Card" onclick="selectPay(this)"><div class="em">💳</div>Debit/Credit Card</div>
+        <div class="pay-opt" data-m="Cash" onclick="selectPay(this)"><div class="em">💵</div>Pay at Center (Cash)</div>
+      </div>
+
+      <div id="cardFields" class="hide" style="margin-top:18px;">
+        <div class="form-grid">
+          <div class="field"><label>Card Number</label><input id="cardNumber" placeholder="4111 1111 1111 1111" maxlength="19"></div>
+          <div class="field"><label>Name on Card</label><input id="cardName" placeholder="J. Silva"></div>
+          <div class="field"><label>Expiry (MM/YY)</label><input id="cardExpiry" placeholder="MM/YY" maxlength="5"></div>
+          <div class="field"><label>CVV</label><input id="cardCvv" placeholder="123" maxlength="4" type="password"></div>
+        </div>
+        <p style="font-size:12px;color:var(--gray);">🔒 Demo checkout — no real card is charged. Connect a live Stripe key server-side to process real payments.</p>
+      </div>
+
+      <div id="paypalFields" class="hide" style="margin-top:18px;">
+        <div class="form-grid">
+          <div class="field"><label>PayPal Email Address</label><input id="paypalEmail" type="email" placeholder="you@paypal.com"></div>
+          <div class="field"><label>Confirm PayPal Email</label><input id="paypalEmailConfirm" type="email" placeholder="you@paypal.com"></div>
+        </div>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px;display:flex;gap:12px;align-items:center;">
+          <div style="font-size:24px;">🅿️</div>
+          <p style="font-size:12.5px;color:var(--gray);margin:0;">You'll be redirected to PayPal to securely log in and confirm this payment after you review your booking. No PayPal details are stored on our site.</p>
+        </div>
+        <p style="font-size:12px;color:var(--gray);margin-top:10px;">🔒 Demo checkout — connect a live PayPal Business client ID server-side to process real payments.</p>
+      </div>
+
+      <div class="step-nav"><button class="btn btn-outline" style="color:var(--primary);border-color:var(--border);" onclick="goStep(3)">← Back</button><button class="btn btn-primary" onclick="tryStep5()">Review Booking →</button></div>
+    </div>
+
+    <div class="book-step hide" id="bstep5">
+      <div class="card" id="summaryCard" style="border:1px solid var(--border);"></div>
+      <div class="step-nav"><button class="btn btn-outline" style="color:var(--primary);border-color:var(--border);" onclick="goStep(4)">← Back</button><button class="btn btn-primary" onclick="confirmBooking()">✅ Confirm Booking</button></div>
+    </div>
+  </div>
+</section>
+
+<section id="manageBooking">
+  <div class="section-head">
+    <div class="eyebrow">Already Booked?</div>
+    <h2>Manage an Existing Booking</h2>
+    <p>Reschedule or cancel a confirmed appointment using your booking reference.</p>
+  </div>
+  <div class="card" style="max-width:600px;margin:0 auto;">
+    <div class="form-grid">
+      <div class="field"><label>Booking Reference</label><input id="mgCode" placeholder="e.g. RA-1001"></div>
+      <div class="field"><label>Phone Number (used at booking)</label><input id="mgPhone" placeholder="07X XXX XXXX"></div>
+    </div>
+    <button class="btn btn-primary" onclick="lookupBooking()">Find My Booking</button>
+    <div id="mgResult" style="margin-top:20px;"></div>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script src="app.js"></script>
+<script>
+let booking = { services:[], slot:null, pay:null };
+function goStep(n){
+  for(let i=1;i<=5;i++){
+    document.getElementById('bstep'+i).classList.toggle('hide', i!==n);
+    const ind = document.getElementById('stepInd'+i);
+    ind.classList.remove('active','done');
+    if(i<n) ind.classList.add('done');
+    if(i===n) ind.classList.add('active');
+  }
+  if(n===2) renderServiceGrid();
+  if(n===3) renderSlots();
+  if(n===5) renderSummary();
+}
+function renderServiceGrid(){
+  const type = document.getElementById('bVehicleType').value;
+  const list = PRICE_LIST.filter(p=>p.type===type);
+  document.getElementById('serviceGrid').innerHTML = list.map((p,i)=>
+    `<div class="svc-card" data-i="${i}" onclick="toggleSvc(this,'${p.name.replace(/'/g,"\\'")}',${p.price})">
+      <b>${p.name}</b><span>Rs. ${p.price.toLocaleString()}</span></div>`).join('');
+  booking.services = [];
+}
+function toggleSvc(el,name,price){
+  el.classList.toggle('sel');
+  const idx = booking.services.findIndex(s=>s.name===name);
+  if(idx>-1) booking.services.splice(idx,1); else booking.services.push({name,price});
+}
+function renderSlots(){
+  const times=["09:00 AM","10:00 AM","11:00 AM","12:30 PM","02:00 PM","03:30 PM","05:00 PM","06:00 PM"];
+  document.getElementById('slotGrid').innerHTML = times.map(t=>`<div class="slot" onclick="selectSlot(this,'${t}')">${t}</div>`).join('');
+  if(!document.getElementById('bDate').value) document.getElementById('bDate').value = new Date().toISOString().slice(0,10);
+}
+function selectSlot(el,t){ document.querySelectorAll('.slot').forEach(s=>s.classList.remove('sel')); el.classList.add('sel'); booking.slot=t; }
+function selectPay(el){
+  document.querySelectorAll('.pay-opt').forEach(p=>p.classList.remove('sel'));
+  el.classList.add('sel'); booking.pay = el.dataset.m;
+  document.getElementById('cardFields').classList.toggle('hide', booking.pay!=='Card');
+  document.getElementById('paypalFields').classList.toggle('hide', booking.pay!=='PayPal');
+}
+document.addEventListener('input', (e)=>{
+  if(e.target.id==='cardNumber') e.target.value = e.target.value.replace(/[^\d]/g,'').slice(0,16).replace(/(.{4})/g,'$1 ').trim();
+  if(e.target.id==='cardExpiry'){ let v=e.target.value.replace(/[^\d]/g,'').slice(0,4); if(v.length>=3) v=v.slice(0,2)+'/'+v.slice(2); e.target.value=v; }
+  if(e.target.id==='cardCvv') e.target.value = e.target.value.replace(/[^\d]/g,'').slice(0,4);
+});
+function validatePayment(){
+  if(!booking.pay) return 'Please select a payment method.';
+  if(booking.pay==='Card'){
+    const num=(document.getElementById('cardNumber').value||'').replace(/\s/g,'');
+    const name=document.getElementById('cardName').value.trim();
+    const exp=document.getElementById('cardExpiry').value.trim();
+    const cvv=document.getElementById('cardCvv').value.trim();
+    if(num.length<15) return 'Please enter a valid 16-digit card number.';
+    if(!name) return 'Please enter the name on the card.';
+    if(!/^\d{2}\/\d{2}$/.test(exp)) return 'Please enter a valid expiry date (MM/YY).';
+    if(cvv.length<3) return 'Please enter a valid CVV.';
+  }
+  if(booking.pay==='PayPal'){
+    const em=document.getElementById('paypalEmail').value.trim();
+    const em2=document.getElementById('paypalEmailConfirm').value.trim();
+    if(!/^\S+@\S+\.\S+$/.test(em)) return 'Please enter a valid PayPal email address.';
+    if(em!==em2) return 'PayPal email addresses do not match.';
+  }
+  return null;
+}
+function tryStep5(){
+  const err = validatePayment();
+  if(err){ alert(err); return; }
+  goStep(5);
+}
+function renderSummary(){
+  const total = booking.services.reduce((a,s)=>a+s.price,0);
+  document.getElementById('summaryCard').innerHTML = `
+    <h4 style="margin-bottom:12px;">Booking Summary</h4>
+    <div class="summary-row"><span>Name</span><b>${document.getElementById('bName').value||'-'}</b></div>
+    <div class="summary-row"><span>Vehicle</span><b>${document.getElementById('bVehicleType').value} — ${document.getElementById('bModel').value||'-'}</b></div>
+    <div class="summary-row"><span>Reg No.</span><b>${document.getElementById('bReg').value||'-'}</b></div>
+    <div class="summary-row"><span>Date / Slot</span><b>${document.getElementById('bDate').value} — ${booking.slot||'-'}</b></div>
+    <div class="summary-row"><span>Services</span><b>${booking.services.map(s=>s.name).join(', ')||'-'}</b></div>
+    <div class="summary-row"><span>Payment Method</span><b>${booking.pay||'-'}${booking.pay==='Card'?' (•••• '+(document.getElementById('cardNumber').value.slice(-4)||'')+')':''}${booking.pay==='PayPal'?' ('+(document.getElementById('paypalEmail').value)+')':''}</b></div>
+    <div class="summary-row total"><span>Total</span><span>Rs. ${total.toLocaleString()}</span></div>`;
+}
+function confirmBooking(){
+  if(!booking.services.length){ alert('Please select at least one service.'); goStep(2); return; }
+  if(!booking.slot){ alert('Please select a time slot.'); goStep(3); return; }
+  const err = validatePayment(); if(err){ alert(err); goStep(4); return; }
+  doConfirm();
+}
+async function doConfirm(){
+  const total = booking.services.reduce((a,s)=>a+s.price,0);
+  await apiReady;
+  let id;
+  if(LIVE){
+    try{
+      const cardNum = document.getElementById('cardNumber')?.value.replace(/\s/g,'') || '';
+      const payload = {
+        vehicle:{ vehicleType:document.getElementById('bVehicleType').value, brand:document.getElementById('bModel').value, registrationNumber:document.getElementById('bReg').value },
+        services: (LIVE_SERVICE_IDS && booking.services.map(s=>LIVE_SERVICE_IDS[s.name]).filter(Boolean)) || [],
+        date:document.getElementById('bDate').value, slot:booking.slot, notes:document.getElementById('bNotes').value,
+        totalAmount: total, paymentMethod: booking.pay,
+        paypalEmail: booking.pay==='PayPal'?document.getElementById('paypalEmail').value:null,
+        cardLast4: booking.pay==='Card'?cardNum.slice(-4):null,
+        guestInfo:{ name:document.getElementById('bName').value, phone:document.getElementById('bPhone').value, email:document.getElementById('bEmail').value }
+      };
+      const res = await api('/bookings.php', { method:'POST', body:payload });
+      id = res.bookingCode;
+    }catch(e){ alert('Booking failed: '+e.message); return; }
+  } else {
+    const seq = db('bookingSeq',1000)+1; setDb('bookingSeq',seq);
+    id = 'RA-'+seq;
+    const rec = {
+      id, name:document.getElementById('bName').value, phone:document.getElementById('bPhone').value,
+      email:document.getElementById('bEmail').value, reg:document.getElementById('bReg').value,
+      vehicleType:document.getElementById('bVehicleType').value, model:document.getElementById('bModel').value,
+      date:document.getElementById('bDate').value, slot:booking.slot, services:booking.services,
+      total, pay:booking.pay, stageIndex:0, createdAt:new Date().toISOString(), status:'Confirmed'
+    };
+    const all = db('bookings',[]); all.push(rec); setDb('bookings',all);
+  }
+  generateBookingPDF({
+    bookingCode:id, name:document.getElementById('bName').value, phone:document.getElementById('bPhone').value,
+    vehicleType:document.getElementById('bVehicleType').value, reg:document.getElementById('bReg').value,
+    date:document.getElementById('bDate').value, slot:booking.slot,
+    services:booking.services, total, pay:booking.pay
+  });
+  alert('🎉 Booking Confirmed!\nYour Booking ID: '+id+'\nA PDF receipt has been downloaded. Save your Booking ID to track your service live.');
+  location.href = 'track.html?id='+encodeURIComponent(id);
+}
+// map live service names -> DB ids, needed when booking against the real API
+let LIVE_SERVICE_IDS = null;
+(async ()=>{
+  await apiReady;
+  if(LIVE){
+    try{ const list = await api('/services.php'); LIVE_SERVICE_IDS = {}; list.forEach(s=>LIVE_SERVICE_IDS[s.service_name]=s.id); }
+    catch(e){}
+  }
+})();
+
+function generateBookingPDF(b){
+  try{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(18); doc.setTextColor(15,23,42); doc.text('Rapid Auto Service Center', 14, 20);
+    doc.setFontSize(11); doc.setTextColor(100); doc.text('Booking Confirmation Receipt', 14, 27);
+    doc.setDrawColor(226,232,240); doc.line(14, 32, 196, 32);
+    doc.setFontSize(12); doc.setTextColor(15,23,42);
+    let y = 44;
+    const row = (label, val) => { doc.setTextColor(100); doc.text(label, 14, y); doc.setTextColor(15,23,42); doc.text(String(val||'-'), 70, y); y += 9; };
+    row('Booking ID:', b.bookingCode);
+    row('Customer Name:', b.name);
+    row('Phone:', b.phone);
+    row('Vehicle Type:', b.vehicleType);
+    row('Registration No.:', b.reg);
+    row('Date:', b.date);
+    row('Time Slot:', b.slot);
+    row('Payment Method:', b.pay);
+    y += 4; doc.line(14, y, 196, y); y += 10;
+    doc.setFontSize(13); doc.text('Services Booked', 14, y); y += 8; doc.setFontSize(11);
+    (b.services||[]).forEach(s=>{ doc.setTextColor(60); doc.text(s.name, 14, y); doc.text('Rs. '+s.price.toLocaleString(), 170, y, {align:'right'}); y+=7; });
+    y += 4; doc.line(14, y, 196, y); y += 10;
+    doc.setFontSize(14); doc.setTextColor(15,23,42); doc.text('Total: Rs. ' + Number(b.total).toLocaleString(), 14, y);
+    y += 16; doc.setFontSize(9); doc.setTextColor(150);
+    doc.text('Track your service live at rapidautoservice.lk/track.html using your Booking ID.', 14, y);
+    doc.save(b.bookingCode + '-receipt.pdf');
+  }catch(e){ console.warn('PDF generation failed:', e.message); }
+}
+
+/* ============ MANAGE EXISTING BOOKING (reschedule / cancel) ============ */
+async function lookupBooking(){
+  const code = document.getElementById('mgCode').value.trim();
+  const phone = document.getElementById('mgPhone').value.trim();
+  const box = document.getElementById('mgResult');
+  if(!code){ alert('Please enter your booking reference.'); return; }
+  await apiReady;
+  if(LIVE){
+    try{
+      const b = await api('/bookings.php?action=manage&code='+encodeURIComponent(code)+'&phone='+encodeURIComponent(phone));
+      renderManageResult(b, true);
+    }catch(e){ box.innerHTML = `<p style="color:#dc2626;font-size:13.5px;">${e.message}</p>`; }
+    return;
+  }
+  const all = db('bookings',[]);
+  const rec = all.find(b=>b.id.toLowerCase()===code.toLowerCase());
+  if(!rec){ box.innerHTML = '<p style="color:#dc2626;font-size:13.5px;">No booking found with that reference.</p>'; return; }
+  if(rec.status==='Cancelled'){ box.innerHTML = '<p style="color:#dc2626;font-size:13.5px;">This booking has already been cancelled.</p>'; return; }
+  renderManageResult({ bookingCode:rec.id, date:rec.date, slot:rec.slot, vehicleType:rec.vehicleType,
+    services:rec.services.map(s=>s.name), totalAmount:rec.total, guestName:rec.name }, false);
+}
+function renderManageResult(b, live){
+  const box = document.getElementById('mgResult');
+  box.innerHTML = `
+    <div class="summary-row"><span>Booking</span><b>${b.bookingCode}</b></div>
+    <div class="summary-row"><span>Vehicle</span><b>${b.vehicleType||'-'}</b></div>
+    <div class="summary-row"><span>Current Date/Slot</span><b>${b.date} — ${b.slot}</b></div>
+    <div class="summary-row"><span>Services</span><b>${(b.services||[]).join(', ')||'-'}</b></div>
+    <div style="margin-top:16px;">
+      <label>New Date</label><input type="date" id="mgNewDate" value="${b.date}" style="margin-bottom:10px;">
+      <label>New Time Slot</label>
+      <select id="mgNewSlot">${["09:00 AM","10:00 AM","11:00 AM","12:30 PM","02:00 PM","03:30 PM","05:00 PM","06:00 PM"].map(t=>`<option ${t===b.slot?'selected':''}>${t}</option>`).join('')}</select>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-primary" style="flex:1;" onclick="doReschedule('${b.bookingCode}', ${live})">Reschedule</button>
+      <button class="btn" style="flex:1;background:#fee2e2;color:#dc2626;" onclick="doCancel('${b.bookingCode}', ${live})">Cancel Booking</button>
+    </div>`;
+}
+async function doReschedule(code, live){
+  const date = document.getElementById('mgNewDate').value;
+  const slot = document.getElementById('mgNewSlot').value;
+  if(live){
+    try{ await api('/bookings.php?action=reschedule&code='+encodeURIComponent(code), { method:'PATCH', body:{date,slot} });
+      alert('Booking rescheduled to '+date+' — '+slot); location.reload();
+    }catch(e){ alert('Reschedule failed: '+e.message); }
+    return;
+  }
+  const all = db('bookings',[]);
+  const rec = all.find(b=>b.id===code);
+  if(rec){ rec.date=date; rec.slot=slot; setDb('bookings',all); alert('Booking rescheduled to '+date+' — '+slot); location.reload(); }
+}
+async function doCancel(code, live){
+  if(!confirm('Cancel booking '+code+'? This cannot be undone.')) return;
+  if(live){
+    try{ await api('/bookings.php?action=cancel&code='+encodeURIComponent(code), { method:'PATCH' });
+      alert('Booking cancelled.'); location.reload();
+    }catch(e){ alert('Cancel failed: '+e.message); }
+    return;
+  }
+  const all = db('bookings',[]);
+  const rec = all.find(b=>b.id===code);
+  if(rec){ rec.status='Cancelled'; setDb('bookings',all); alert('Booking cancelled.'); location.reload(); }
+}
+</script>
+</body>
+</html>

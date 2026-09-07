@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Track Service — Rapid Auto Service Center</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="page-hero">
+  <div class="page-hero-inner">
+    <div class="crumbs"><a href="index.html">Home</a> / Track Service</div>
+    <h1>Live Service Tracking</h1>
+    <p>Enter your Booking ID (shown after confirmation) to see live progress.</p>
+  </div>
+</div>
+
+<section>
+  <div style="max-width:420px;margin:0 auto 26px;display:flex;gap:10px;">
+    <input id="trackInput" placeholder="e.g. RA-1001">
+    <button class="btn btn-primary" onclick="renderTracking()">Track</button>
+  </div>
+  <div class="track-box" id="trackBox" style="max-width:600px;margin:0 auto;">
+    <p style="text-align:center;color:var(--gray);">No booking selected yet. <a href="book.html" style="color:var(--secondary);">Book a service</a> or enter a Booking ID above.</p>
+  </div>
+</section>
+
+<script src="app.js"></script>
+<script>
+async function renderTracking(){
+  const id = document.getElementById('trackInput').value.trim();
+  const box = document.getElementById('trackBox');
+  if(!id) return;
+  await apiReady;
+  if(LIVE){
+    try{
+      const t = await api('/bookings.php?action=track&code='+encodeURIComponent(id));
+      const pct = Math.round((t.currentStageIndex/(t.stages.length-1))*100);
+      box.innerHTML = `<h3 style="margin-bottom:4px;">${t.bookingCode} — ${t.vehicleType||''} (${t.registration||'N/A'})</h3>
+        <p style="color:var(--gray);font-size:13px;margin-bottom:14px;">${(t.services||[]).join(', ')}</p>
+        <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;"></div></div>
+        ${t.stages.map((s,i)=>`<div class="track-stage ${i<t.currentStageIndex?'complete':''} ${i===t.currentStageIndex?'active':''}">
+          <div class="num">${i<t.currentStageIndex?'✓':i+1}</div><span>${s}</span></div>`).join('')}`;
+    }catch(e){ box.innerHTML = '<p style="text-align:center;color:var(--gray);">No booking found for that ID. Double-check and try again.</p>'; }
+    return;
+  }
+  const all = db('bookings',[]);
+  const rec = all.find(b=>b.id.toLowerCase()===id.toLowerCase());
+  if(!rec){ box.innerHTML = '<p style="text-align:center;color:var(--gray);">No booking found for that ID. Double-check and try again.</p>'; return; }
+  const elapsed = Math.floor((Date.now()-new Date(rec.createdAt).getTime())/20000);
+  rec.stageIndex = Math.min(STAGES.length-1, elapsed);
+  const pct = Math.round((rec.stageIndex/(STAGES.length-1))*100);
+  box.innerHTML = `
+    <h3 style="margin-bottom:4px;">${rec.id} — ${rec.vehicleType} (${rec.reg||'N/A'})</h3>
+    <p style="color:var(--gray);font-size:13px;margin-bottom:14px;">${rec.services.map(s=>s.name).join(', ')}</p>
+    <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;"></div></div>
+    ${STAGES.map((s,i)=>`<div class="track-stage ${i<rec.stageIndex?'complete':''} ${i===rec.stageIndex?'active':''}">
+      <div class="num">${i<rec.stageIndex?'✓':i+1}</div><span>${s}</span></div>`).join('')}
+  `;
+  const all2 = all.map(b=>b.id===rec.id?rec:b); setDb('bookings',all2);
+}
+setInterval(()=>{ if(document.getElementById('trackInput').value) renderTracking(); }, 4000);
+// auto-fill from ?id= query param (e.g. redirected after booking)
+const params = new URLSearchParams(location.search);
+if(params.get('id')){ document.getElementById('trackInput').value = params.get('id'); renderTracking(); }
+</script>
+</body>
+</html>

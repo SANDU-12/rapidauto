@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Services & Packages — Rapid Auto Service Center</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="page-hero">
+  <div class="page-hero-inner">
+    <div class="crumbs"><a href="index.html">Home</a> / Services & Packages</div>
+    <h1>Services & Packages</h1>
+    <p>Every wash, vacuum and service package, categorized by vehicle type - priced exactly as posted at our center.</p>
+  </div>
+</div>
+
+<section>
+  <div class="category-tabs" id="catTabs"></div>
+  <div class="grid-3" id="pkgGrid"></div>
+</section>
+
+<section>
+  <div class="section-head">
+    <div class="eyebrow">Also Available</div>
+    <h2>Additional Vehicle Services</h2>
+    <p>Beyond washing - mechanical and detailing services available on request or as add-ons.</p>
+  </div>
+  <div class="pill-row" id="addServicesRow" style="justify-content:center;display:flex;flex-wrap:wrap;gap:10px;"></div>
+</section>
+
+<div class="cta-band reveal" style="background:linear-gradient(120deg,var(--secondary),#1e40af);border-radius:22px;padding:50px;text-align:center;color:#fff;margin:0 5% 70px;">
+  <h2 style="font-size:28px;margin-bottom:10px;">Found the right package?</h2>
+  <p style="color:#dbeafe;margin-bottom:22px;">Book your slot online — pick your service, time, and payment method in under a minute.</p>
+  <a href="book.html" class="btn btn-primary">Book This Service</a>
+</div>
+
+<script src="app.js"></script>
+<script>
+const CAT_ICON = {"Motorcycle":"","Car":"","Jeep/Vessel":"","Three Wheeler":"","Van (Small)":"","Van (Large)":"","Lorry":""};
+let activeCat = "All";
+let LIVE_SERVICES = null;
+function slug(c){ return c.replace(/[^\w]/g,''); }
+
+async function loadServices(){
+  await apiReady;
+  if(LIVE){
+    try{ LIVE_SERVICES = (await api('/services.php')).filter(s=>s.category!=='Additional Service')
+      .map(s=>({name:s.service_name, price:Number(s.price), type:s.category, desc:s.description||''})); }
+    catch(e){ console.warn('Falling back to demo price list:', e.message); }
+  }
+}
+function currentPriceList(){ return LIVE_SERVICES || PRICE_LIST; }
+
+function renderTabs(){
+  const tabs = ["All", ...CATEGORIES];
+  document.getElementById('catTabs').innerHTML = tabs.map(c=>
+    `<button class="cat-tab ${c===activeCat?'on':''}" onclick="setCat('${c}')">${CAT_ICON[c]||''} ${c}</button>`).join('');
+}
+function setCat(c){ activeCat=c; renderTabs(); renderPkgs(); }
+function renderPkgs(){
+  const list = activeCat==="All" ? currentPriceList() : currentPriceList().filter(p=>p.type===activeCat);
+  document.getElementById('pkgGrid').innerHTML = list.map((p,i)=>`
+    <div class="pkg-card reveal" id="${slug(p.type)}" style="transition-delay:${(i%3)*.06}s">
+      <div class="pkg-head">${p.price>=1500?'<span class="tag">POPULAR</span>':''}
+        <span>${CAT_ICON[p.type]||''} ${p.type}</span><b>${p.name}</b></div>
+      <div class="pkg-body">
+        <div class="pkg-price">Rs. ${p.price.toLocaleString()} <small>/ service</small></div>
+        <ul class="pkg-list"><li>${p.desc}</li><li>Trained wash technicians</li><li>Live progress tracking</li></ul>
+        <a href="book.html" class="btn btn-primary" style="width:100%;text-align:center;">Book This Package</a>
+      </div>
+    </div>`).join('');
+  setTimeout(initReveal, 30);
+}
+renderTabs(); renderPkgs();
+loadServices().then(()=>{ renderTabs(); renderPkgs(); });
+renderTabs(); renderPkgs();
+document.getElementById('addServicesRow').innerHTML = ADD_SERVICES.map(s=>`<div class="pill">${s}</div>`).join('');
+
+// deep-link support e.g. services.html#Car
+if(location.hash){
+  const cat = CATEGORIES.find(c=>slug(c)===location.hash.slice(1));
+  if(cat){ setCat(cat); }
+}
+</script>
+</body>
+</html>

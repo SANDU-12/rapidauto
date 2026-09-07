@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout — Rapid Auto Service Center</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.checkout-wrap{display:grid;grid-template-columns:1.4fr 1fr;gap:26px;align-items:start;}
+@media(max-width:900px){.checkout-wrap{grid-template-columns:1fr;}}
+.cart-row{display:grid;grid-template-columns:60px 1fr auto auto auto;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--border);}
+.cart-row img{width:56px;height:56px;object-fit:cover;border-radius:8px;}
+.cart-row b{font-size:13.5px;}
+.cart-row .p{font-size:13px;color:var(--gray);}
+.qmini{display:flex;align-items:center;gap:6px;}
+.qmini button{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:#fff;font-weight:700;}
+.rm-btn{color:#dc2626;font-size:12px;background:none;border:none;font-weight:700;}
+.summary-sticky{position:sticky;top:90px;}
+</style>
+</head>
+<body>
+<div class="page-hero">
+  <div class="page-hero-inner">
+    <div class="crumbs"><a href="index.html">Home</a> / Checkout</div>
+    <h1>Checkout</h1>
+    <p>Review your cart, enter your details, and choose how you'd like to pay.</p>
+  </div>
+</div>
+
+<section>
+  <div class="checkout-wrap">
+    <div>
+      <div class="card" style="margin-bottom:20px;">
+        <h4 style="margin-bottom:10px;">Your Cart</h4>
+        <div id="cartList"></div>
+        <div id="emptyCart" class="hide" style="text-align:center;padding:30px 0;color:var(--gray);">
+          Your cart is empty. <a href="shop.html" style="color:var(--secondary);">Browse spare parts →</a>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px;">
+        <h4 style="margin-bottom:14px;">Customer Details</h4>
+        <div class="form-grid">
+          <div class="field"><label>Full Name</label><input id="cName" placeholder="e.g. Nimal Perera"></div>
+          <div class="field"><label>Phone Number</label><input id="cPhone" placeholder="07X XXX XXXX"></div>
+          <div class="field" style="grid-column:1/-1;"><label>Email</label><input id="cEmail" type="email" placeholder="you@email.com"></div>
+          <div class="field" style="grid-column:1/-1;"><label>Delivery / Pickup Address</label><textarea id="cAddress" rows="2" placeholder="Address, or write 'Pickup at center'"></textarea></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4 style="margin-bottom:6px;">Payment Method</h4>
+        <div style="margin-bottom:14px;" id="badgeRow"></div>
+        <div class="pay-methods" id="payGrid">
+          <div class="pay-opt" data-m="Card" onclick="selectPay(this)"><div class="em">💳</div>Debit/Credit Card</div>
+          <div class="pay-opt" data-m="PayPal" onclick="selectPay(this)"><div class="em">🅿️</div>PayPal</div>
+          <div class="pay-opt" data-m="Cash" onclick="selectPay(this)"><div class="em">💵</div>Cash on Pickup</div>
+        </div>
+
+        <div id="cardFields" class="hide" style="margin-top:18px;">
+          <div class="form-grid">
+            <div class="field" style="grid-column:1/-1;"><label>Card Number</label><input id="ckCardNumber" placeholder="4111 1111 1111 1111" maxlength="19"></div>
+            <div class="field"><label>Name on Card</label><input id="ckCardName" placeholder="J. Silva"></div>
+            <div class="field"><label>Expiry (MM/YY)</label><input id="ckCardExpiry" placeholder="MM/YY" maxlength="5"></div>
+            <div class="field"><label>CVV</label><input id="ckCardCvv" placeholder="123" maxlength="4" type="password"></div>
+          </div>
+          <p style="font-size:12px;color:var(--gray);">🔒 Demo checkout — no real card is charged.</p>
+        </div>
+
+        <div id="paypalFields" class="hide" style="margin-top:18px;">
+          <div class="form-grid">
+            <div class="field"><label>PayPal Email</label><input id="ckPaypalEmail" type="email" placeholder="you@paypal.com"></div>
+            <div class="field"><label>Confirm PayPal Email</label><input id="ckPaypalEmailConfirm" type="email" placeholder="you@paypal.com"></div>
+          </div>
+          <p style="font-size:12px;color:var(--gray);">🔒 You'll be redirected to PayPal to confirm this payment. Demo checkout only.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card summary-sticky">
+      <h4 style="margin-bottom:14px;">Order Summary</h4>
+      <div id="summaryLines"></div>
+      <div class="summary-row"><span>Subtotal</span><b id="sumSub">Rs. 0</b></div>
+      <div class="summary-row"><span>Delivery</span><b id="sumDelivery">Rs. 0</b></div>
+      <div class="summary-row total"><span>Total</span><span id="sumTotal">Rs. 0</span></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:16px;" onclick="placeOrder()">✅ Place Order</button>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="app.js"></script>
+<script>
+let payMethod = null;
+let LIVE_PRODUCTS = null;
+document.getElementById('badgeRow').innerHTML = paymentBadgesHTML();
+
+async function loadProducts(){
+  await apiReady;
+  if(LIVE){
+    try{ LIVE_PRODUCTS = await api('/products.php'); }
+    catch(e){ console.warn('Falling back to demo products:', e.message); }
+  }
+}
+function currentProducts(){ return LIVE_PRODUCTS || PRODUCTS; }
+function findProduct(id){ return currentProducts().find(p=>String(p.id)===String(id)); }
+
+function renderCart(){
+  const cart = getCart();
+  const list = document.getElementById('cartList');
+  document.getElementById('emptyCart').classList.toggle('hide', cart.length>0);
+  list.innerHTML = cart.map(i=>{
+    const p = findProduct(i.id);
+    if(!p) return '';
+    const img = p.image||p.img;
+    return `<div class="cart-row">
+      <img src="${img}" alt="${p.name}" onerror="imgFallback(this,'${p.name.replace(/'/g,"")}')">
+      <div><b>${p.name}</b><div class="p">Rs. ${Number(p.price).toLocaleString()} each</div></div>
+      <div class="qmini"><button onclick="chgQty('${p.id}',-1)">−</button><span style="min-width:20px;text-align:center;">${i.qty}</span><button onclick="chgQty('${p.id}',1)">+</button></div>
+      <b>Rs. ${(p.price*i.qty).toLocaleString()}</b>
+      <button class="rm-btn" onclick="removeFromCart('${p.id}');renderCart();">Remove</button>
+    </div>`;
+  }).join('');
+  const sub = getCart().reduce((sum,i)=>{ const p=findProduct(i.id); return sum + (p?p.price*i.qty:0); },0);
+  const delivery = sub>0 ? 350 : 0;
+  document.getElementById('sumSub').textContent = 'Rs. '+sub.toLocaleString();
+  document.getElementById('sumDelivery').textContent = 'Rs. '+delivery.toLocaleString();
+  document.getElementById('sumTotal').textContent = 'Rs. '+(sub+delivery).toLocaleString();
+  document.getElementById('summaryLines').innerHTML = cart.map(i=>{
+    const p = findProduct(i.id); if(!p) return '';
+    return `<div class="summary-row"><span>${p.name} × ${i.qty}</span><span>Rs. ${(p.price*i.qty).toLocaleString()}</span></div>`;
+  }).join('');
+}
+function chgQty(id, d){ const cart=getCart(); const item=cart.find(i=>i.id===id); if(item){ setCartQty(id, item.qty+d); renderCart(); } }
+
+function selectPay(el){
+  document.querySelectorAll('.pay-opt').forEach(p=>p.classList.remove('sel'));
+  el.classList.add('sel'); payMethod = el.dataset.m;
+  document.getElementById('cardFields').classList.toggle('hide', payMethod!=='Card');
+  document.getElementById('paypalFields').classList.toggle('hide', payMethod!=='PayPal');
+}
+document.addEventListener('input', (e)=>{
+  if(e.target.id==='ckCardNumber') e.target.value = e.target.value.replace(/[^\d]/g,'').slice(0,16).replace(/(.{4})/g,'$1 ').trim();
+  if(e.target.id==='ckCardExpiry'){ let v=e.target.value.replace(/[^\d]/g,'').slice(0,4); if(v.length>=3) v=v.slice(0,2)+'/'+v.slice(2); e.target.value=v; }
+  if(e.target.id==='ckCardCvv') e.target.value = e.target.value.replace(/[^\d]/g,'').slice(0,4);
+});
+
+async function placeOrder(){
+  const cart = getCart();
+  if(!cart.length){ alert('Your cart is empty.'); return; }
+  const name = document.getElementById('cName').value.trim();
+  const phone = document.getElementById('cPhone').value.trim();
+  const email = document.getElementById('cEmail').value.trim();
+  const address = document.getElementById('cAddress').value.trim();
+  if(!name || !phone){ alert('Please enter your name and phone number.'); return; }
+  if(!payMethod){ alert('Please select a payment method.'); return; }
+  let cardLast4 = null, paypalEmail = null;
+  if(payMethod==='Card'){
+    const num=(document.getElementById('ckCardNumber').value||'').replace(/\s/g,'');
+    const cname=document.getElementById('ckCardName').value.trim();
+    const exp=document.getElementById('ckCardExpiry').value.trim();
+    const cvv=document.getElementById('ckCardCvv').value.trim();
+    if(num.length<15){ alert('Please enter a valid card number.'); return; }
+    if(!cname){ alert('Please enter the name on the card.'); return; }
+    if(!/^\d{2}\/\d{2}$/.test(exp)){ alert('Please enter a valid expiry (MM/YY).'); return; }
+    if(cvv.length<3){ alert('Please enter a valid CVV.'); return; }
+    cardLast4 = num.slice(-4);
+  }
+  if(payMethod==='PayPal'){
+    const em=document.getElementById('ckPaypalEmail').value.trim();
+    const em2=document.getElementById('ckPaypalEmailConfirm').value.trim();
+    if(!/^\S+@\S+\.\S+$/.test(em)){ alert('Please enter a valid PayPal email.'); return; }
+    if(em!==em2){ alert('PayPal email addresses do not match.'); return; }
+    paypalEmail = em;
+  }
+
+  let orderId;
+  if(LIVE){
+    try{
+      const res = await api('/orders.php', { method:'POST', body:{
+        items: cart, name, phone, email, address, paymentMethod: payMethod, paypalEmail, cardLast4
+      }});
+      orderId = res.orderCode;
+    }catch(e){ alert('Order failed: '+e.message); return; }
+  } else {
+    orderId = 'ORD-' + (1000 + (db('orderSeq',0)+1));
+    setDb('orderSeq', (db('orderSeq',0)+1));
+    const orders = db('orders', []);
+    orders.push({ id: orderId, name, phone, items: cart, total: cartTotal()+350, pay: payMethod, createdAt: new Date().toISOString() });
+    setDb('orders', orders);
+  }
+  setCart([]);
+  generateOrderPDF({ orderId, name, phone, address, items: cart, products: currentProducts(), pay: payMethod });
+  alert('🎉 Order Placed!\nYour Order ID: '+orderId+'\nAn invoice PDF has been downloaded. We will contact you to confirm delivery/pickup.');
+  location.href = 'shop.html';
+}
+function generateOrderPDF(o){
+  try{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(18); doc.setTextColor(15,23,42); doc.text('Rapid Auto Service Center', 14, 20);
+    doc.setFontSize(11); doc.setTextColor(100); doc.text('Spare Parts Order Invoice', 14, 27);
+    doc.setDrawColor(226,232,240); doc.line(14, 32, 196, 32);
+    let y = 44; doc.setFontSize(12);
+    const row = (label, val) => { doc.setTextColor(100); doc.text(label, 14, y); doc.setTextColor(15,23,42); doc.text(String(val||'-'), 70, y); y += 9; };
+    row('Order ID:', o.orderId);
+    row('Customer Name:', o.name);
+    row('Phone:', o.phone);
+    row('Address:', o.address || 'Pickup at center');
+    row('Payment Method:', o.pay);
+    y += 4; doc.line(14, y, 196, y); y += 10;
+    doc.setFontSize(13); doc.text('Items', 14, y); y += 8; doc.setFontSize(11);
+    let subtotal = 0;
+    o.items.forEach(i=>{
+      const p = o.products.find(p=>String(p.id)===String(i.id)); if(!p) return;
+      const lineTotal = p.price*i.qty; subtotal += lineTotal;
+      doc.setTextColor(60); doc.text(`${p.name} × ${i.qty}`, 14, y); doc.text('Rs. '+lineTotal.toLocaleString(), 170, y, {align:'right'}); y+=7;
+    });
+    y += 4; doc.line(14, y, 196, y); y += 10;
+    doc.setFontSize(11); doc.setTextColor(80); doc.text('Subtotal: Rs. '+subtotal.toLocaleString(), 14, y); y+=7;
+    doc.text('Delivery: Rs. 350', 14, y); y+=9;
+    doc.setFontSize(14); doc.setTextColor(15,23,42); doc.text('Total: Rs. '+(subtotal+350).toLocaleString(), 14, y);
+    doc.save(o.orderId + '-invoice.pdf');
+  }catch(e){ console.warn('PDF generation failed:', e.message); }
+}
+(async ()=>{ await loadProducts(); renderCart(); })();
+</script>
+</body>
+</html>
