@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Garage - Rapid Auto Service Center</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.garage-section{padding-top:44px;padding-bottom:72px;}
+.garage-overview{grid-column:1/-1;display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:26px;}
+.garage-kicker,.garage-main-kicker{display:block;color:var(--secondary);font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:7px;}
+.garage-welcome h2{font-size:28px;line-height:1.15;}
+.garage-welcome p{margin-top:7px;color:var(--gray);font-size:14px;}
+.garage-stats{display:flex;gap:10px;}
+.garage-stat{min-width:130px;padding:13px 16px;background:#fff;border:1px solid var(--border);border-radius:8px;border-left:3px solid var(--accent);}
+.garage-stat span{display:block;color:var(--gray);font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:5px;}
+.garage-stat strong{font-size:22px;line-height:1;}
+.garage-notifications{grid-column:1/-1;padding:14px 18px;background:#fff8e6;border-left:4px solid var(--accent);color:#684b0b;}
+.garage-notifications h3{font-size:14px;margin-bottom:7px;}
+.garage-notification{padding:7px 0;border-top:1px solid #f2d48b;font-size:13px;line-height:1.5;overflow-wrap:anywhere;}
+.garage-loyalty{grid-column:1/-1;display:grid;grid-template-columns:minmax(190px,.7fr) minmax(0,1.3fr);overflow:hidden;border:1px solid var(--border);border-radius:8px;background:#fff;}
+.garage-loyalty-balance{display:flex;align-items:center;gap:15px;padding:19px 22px;background:var(--primary);color:#fff;}
+.garage-loyalty-icon{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:50%;background:var(--accent);color:var(--primary);font-size:18px;}
+.garage-loyalty-balance span,.garage-loyalty-balance small{display:block;color:#d7e0eb;font-size:11px;}
+.garage-loyalty-balance strong{display:block;margin:2px 0;font-size:28px;line-height:1.1;}
+.garage-loyalty-content{padding:17px 21px;}
+.garage-loyalty-content h3{margin-bottom:8px;font-size:14px;}
+.garage-reward-rules{display:flex;gap:9px;flex-wrap:wrap;}
+.garage-reward-rule{padding:8px 10px;border-radius:6px;background:#f3f6fa;font-size:12px;}
+.garage-reward-rule b{display:block;}
+.garage-loyalty-content>p{margin-top:9px;color:var(--gray);font-size:11px;}
+.garage-loyalty-history{grid-column:1/-1;display:flex;gap:16px;flex-wrap:wrap;padding:10px 20px;border-top:1px solid var(--border);color:var(--gray);font-size:11px;}
+.garage-loyalty-history span{overflow-wrap:anywhere;}
+.garage-grid{display:grid;grid-template-columns:292px minmax(0,1fr);gap:22px;align-items:start;}
+.profile-card,.vehicle-card{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.profile-card{position:sticky;top:84px;box-shadow:0 8px 24px rgba(15,23,42,.06);}
+.profile-banner{display:flex;align-items:center;gap:14px;padding:20px;background:var(--primary);color:#fff;border-bottom:3px solid var(--accent);}
+.profile-avatar-wrap{position:relative;width:58px;height:58px;flex:0 0 58px;}
+.profile-avatar-lg{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--accent);color:var(--primary);font-size:23px;font-weight:800;border:2px solid rgba(255,255,255,.8);}
+.profile-avatar-lg img{width:100%;height:100%;border-radius:50%;object-fit:cover;}
+.profile-avatar-actions{position:absolute;right:-12px;bottom:-8px;display:flex;gap:3px;}
+.profile-avatar-action{width:26px;height:26px;padding:0;border:1px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--accent);color:var(--primary);cursor:pointer;font-size:11px;}
+.profile-avatar-action:hover{background:#fff;}
+.profile-avatar-action[hidden]{display:none;}
+.profile-image-input{display:none;}
+.profile-identity{min-width:0;}
+.profile-identity h3{font-size:17px;overflow-wrap:anywhere;}
+.profile-identity span{display:block;color:#cbd5e1;font-size:11px;margin-top:4px;}
+.contact-list{padding:8px 20px 12px;}
+.contact-line{padding:11px 0;border-bottom:1px solid var(--border);font-size:13px;overflow-wrap:anywhere;}
+.contact-line:last-child{border-bottom:0;}
+.contact-line span{display:block;color:var(--gray);font-size:10px;font-weight:800;margin-bottom:4px;text-transform:uppercase;}
+.profile-form{display:grid;gap:11px;padding:17px 20px 20px;background:#f8fafc;border-top:1px solid var(--border);}
+.profile-form input,.profile-form textarea{font:inherit;font-size:13px;}
+.profile-form textarea{resize:vertical;}
+.profile-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px;}
+.profile-actions button{flex:1;min-width:0;padding:9px 12px;}
+.garage-main{min-width:0;}
+.garage-main-heading{display:flex;justify-content:space-between;align-items:end;gap:14px;margin-bottom:15px;}
+.garage-main-heading h2{font-size:21px;}
+.garage-main-heading .btn{white-space:nowrap;}
+.garage-main-heading .garage-add-vehicle{background:#fff;border-color:var(--primary);color:var(--primary);}
+.garage-main-heading .garage-add-vehicle:hover{background:#edf2f7;color:var(--primary);}
+.vehicle-list{display:grid;gap:15px;}
+.vehicle-card{box-shadow:0 8px 24px rgba(15,23,42,.045);transition:border-color .2s,box-shadow .2s;}
+.vehicle-card:hover{border-color:#b8c8e2;box-shadow:0 12px 28px rgba(15,23,42,.08);}
+.vehicle-head{padding:17px 20px;background:#fbfcfe;border-bottom:1px solid var(--border);}
+.vehicle-identity{display:flex;justify-content:space-between;align-items:center;gap:15px;}
+.vehicle-type{display:block;color:var(--secondary);font-size:10px;font-weight:800;text-transform:uppercase;margin-bottom:6px;}
+.vehicle-plate{display:inline-block;padding:5px 11px;border:1px solid #cbd5e1;border-radius:4px;background:#fff;font-size:18px;font-weight:800;overflow-wrap:anywhere;}
+.vehicle-description{color:var(--gray);font-size:13px;margin-top:7px;}
+.vehicle-status{flex:0 0 auto;}
+.vehicle-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;padding:15px 20px;}
+.vehicle-meta div{min-width:0;padding:11px 12px;border-radius:6px;background:#f3f6fa;font-size:13px;font-weight:700;overflow-wrap:anywhere;}
+.vehicle-meta span{display:block;color:var(--gray);font-size:10px;font-weight:700;text-transform:uppercase;margin-bottom:5px;}
+.service-reminder{padding:12px 20px;background:#fff8e6;border-top:1px solid #f2d48b;color:#684b0b;font-size:13px;line-height:1.5;overflow-wrap:anywhere;}
+.service-reminder strong{font-weight:800;}
+.vehicle-details-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border);}
+.vehicle-detail{min-width:0;padding:16px 20px 18px;}
+.vehicle-detail+.vehicle-detail{border-left:1px solid var(--border);}
+.vehicle-detail h4{font-size:13px;margin-bottom:5px;}
+.vehicle-detail-intro{display:block;color:var(--gray);font-size:11px;margin-bottom:8px;overflow-wrap:anywhere;}
+.history-row{display:flex;gap:10px;padding:11px 0;border-top:1px solid var(--border);font-size:12px;}
+.history-date{flex:0 0 76px;color:var(--secondary);font-size:10px;font-weight:800;line-height:1.4;}
+.history-copy{min-width:0;overflow-wrap:anywhere;}
+.history-copy b{font-size:12px;}
+.history-row small{display:block;color:var(--gray);margin-top:4px;line-height:1.5;}
+.garage-empty{padding:24px;border:1px dashed #b8c8e2;border-radius:8px;background:#fff;color:var(--gray);font-size:14px;}
+.vehicle-dialog{width:min(720px,calc(100vw - 28px));max-height:calc(100dvh - 32px);padding:0;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--primary);box-shadow:0 24px 70px rgba(15,23,42,.28);}
+.vehicle-dialog::backdrop{background:rgba(15,23,42,.58);backdrop-filter:blur(3px);}
+.vehicle-form{max-height:calc(100dvh - 32px);overflow-y:auto;}
+.vehicle-form-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding:23px 26px;background:var(--primary);color:#fff;border-bottom:3px solid var(--accent);}
+.vehicle-form-head h2{font-size:22px;line-height:1.2;}
+.vehicle-form-head p{margin-top:6px;color:#cbd5e1;font-size:13px;}
+.vehicle-form-kicker{display:block;margin-bottom:6px;color:var(--accent);font-size:10px;font-weight:800;text-transform:uppercase;}
+.vehicle-dialog-close{width:34px;height:34px;flex:0 0 34px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:transparent;color:#fff;cursor:pointer;}
+.vehicle-form-body{display:grid;gap:17px;padding:23px 26px 12px;}
+.vehicle-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+.vehicle-form-grid .field{min-width:0;margin:0;}
+.vehicle-form-grid input,.vehicle-form-grid select{width:100%;min-height:44px;}
+.vehicle-form-hint{margin-top:-8px;color:var(--gray);font-size:12px;}
+.vehicle-identifiers{padding-top:15px;border-top:1px solid var(--border);}
+.vehicle-identifiers summary{color:var(--secondary);font-size:13px;font-weight:700;cursor:pointer;}
+.vehicle-identifiers .vehicle-form-grid{margin-top:13px;}
+.vehicle-form-status{min-height:20px;margin:0;color:var(--gray);font-size:12px;}
+.vehicle-form-actions{display:flex;justify-content:flex-end;gap:10px;padding:14px 26px 22px;border-top:1px solid var(--border);}
+.vehicle-form-actions button{min-width:126px;}
+@media(max-width:900px){.garage-grid{grid-template-columns:250px minmax(0,1fr);gap:16px;}.vehicle-details-grid{grid-template-columns:1fr;}.vehicle-detail+.vehicle-detail{border-left:0;border-top:1px solid var(--border);}}
+@media(max-width:700px){.garage-section{padding-top:30px;}.garage-overview{align-items:stretch;flex-direction:column;gap:16px;}.garage-stats{display:grid;grid-template-columns:1fr 1fr;}.garage-stat{min-width:0;}.garage-grid{grid-template-columns:1fr;}.profile-card{position:static;}.profile-banner{padding:17px 20px;}.garage-main-heading{align-items:center;}.vehicle-meta{padding:12px 14px;gap:7px;}.vehicle-meta div{padding:10px 9px;}.vehicle-detail{padding:14px;}}
+@media(max-width:700px){.service-reminder{padding:11px 14px;}}
+@media(max-width:420px){.garage-welcome h2{font-size:24px;}.garage-main-heading{align-items:flex-start;flex-direction:column;}.vehicle-head{padding:14px;}.vehicle-identity{align-items:flex-start;}.vehicle-plate{font-size:16px;}.vehicle-status{max-width:112px;text-align:right;}.history-row{gap:7px;}.history-date{flex-basis:64px;}}
+@media(max-width:560px){.vehicle-form-head{padding:19px 18px;}.vehicle-form-body{padding:19px 18px 10px;}.vehicle-form-grid{grid-template-columns:1fr;gap:12px;}.vehicle-form-actions{padding:13px 18px 18px;}.vehicle-form-actions button{min-width:0;flex:1;}}
+@media(max-width:560px){.garage-loyalty{grid-template-columns:1fr;}.garage-loyalty-balance{padding:15px 18px;}.garage-loyalty-content{padding:15px 18px;}.garage-loyalty-history{padding:10px 18px;}}
+</style>
+</head>
+<body>
+<div class="page-hero"><div class="page-hero-inner"><div class="crumbs"><a href="index.html">Home</a> / My Garage</div><h1>My Garage</h1><p>Your vehicles, service history, and upcoming maintenance reminders.</p></div></div>
+<section>
+  <div id="garageStatus" class="card" style="text-align:center;color:var(--gray);">Loading your garage...</div>
+  <div id="garageContent" class="garage-grid hide"></div>
+</section>
+<dialog class="vehicle-dialog" id="vehicleDialog" aria-labelledby="vehicleDialogTitle">
+  <form class="vehicle-form" id="vehicleForm" onsubmit="addGarageVehicle(event)">
+    <div class="vehicle-form-head">
+      <div><span class="vehicle-form-kicker">Your garage</span><h2 id="vehicleDialogTitle">Add a vehicle</h2><p>Save your vehicle details to keep its bookings and service history together.</p></div>
+      <button class="vehicle-dialog-close" type="button" aria-label="Close" onclick="closeVehicleDialog()"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div class="vehicle-form-body">
+      <div class="vehicle-form-grid">
+        <div class="field"><label for="garageVehicleType">Vehicle type *</label><select id="garageVehicleType" name="vehicleType" required><option value="">Choose a vehicle type</option><option>Motorcycle</option><option>Car</option><option>Jeep/Vessel</option><option>Three Wheeler</option><option>Van (Small)</option><option>Van (Large)</option><option>Lorry</option></select></div>
+        <div class="field"><label for="garageVehiclePlate">Registration number *</label><input id="garageVehiclePlate" name="registrationNumber" placeholder="e.g. CAB-4521" maxlength="16" autocomplete="off" required></div>
+        <div class="field"><label for="garageVehicleBrand">Make</label><input id="garageVehicleBrand" name="brand" placeholder="e.g. Toyota"></div>
+        <div class="field"><label for="garageVehicleModel">Model</label><input id="garageVehicleModel" name="model" placeholder="e.g. Aqua"></div>
+        <div class="field"><label for="garageVehicleYear">Year</label><input id="garageVehicleYear" name="year" type="number" min="1886" max="2100" placeholder="e.g. 2022"></div>
+        <div class="field"><label for="garageVehicleColor">Color</label><input id="garageVehicleColor" name="color" placeholder="e.g. White"></div>
+        <div class="field"><label for="garageVehicleFuel">Fuel type</label><select id="garageVehicleFuel" name="fuelType"><option value="">Select fuel type</option><option>Petrol</option><option>Diesel</option><option>Hybrid</option><option>Electric</option><option>LPG</option><option>Other</option></select></div>
+        <div class="field"><label for="garageVehicleKm">Current mileage (km)</label><input id="garageVehicleKm" name="currentKm" type="number" min="0" step="1" inputmode="numeric" placeholder="e.g. 48500" title="Enter digits only. Negative and fractional mileage is not allowed."></div>
+      </div>
+      <p class="vehicle-form-hint">Digits only, whole kilometres from 0 and up. Add mileage for more accurate service reminders.</p>
+      <details class="vehicle-identifiers"><summary>Additional identifiers (optional)</summary><div class="vehicle-form-grid"><div class="field"><label for="garageVehicleEngine">Engine number</label><input id="garageVehicleEngine" name="engineNumber"></div><div class="field"><label for="garageVehicleChassis">Chassis number</label><input id="garageVehicleChassis" name="chassisNumber"></div></div></details>
+      <p class="vehicle-form-status" id="vehicleFormStatus" role="status" aria-live="polite"></p>
+    </div>
+    <div class="vehicle-form-actions"><button class="btn btn-outline" type="button" onclick="closeVehicleDialog()">Cancel</button><button class="btn btn-primary" id="vehicleSubmitButton" type="submit"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add vehicle</button></div>
+  </form>
+</dialog>
+<script src="app.js"></script>
+<script>
+// Garage actions use the current customer session; the API derives vehicle ownership server-side.
+function openVehicleDialog(){ document.getElementById('vehicleFormStatus').textContent=''; document.getElementById('vehicleDialog').showModal(); }
+function closeVehicleDialog(){ document.getElementById('vehicleDialog').close(); }
+function validateGarageMileage(input){
+  const invalid = input.validity.badInput || input.validity.rangeUnderflow || input.validity.stepMismatch || (input.value !== '' && !/^\d+$/.test(input.value));
+  input.setCustomValidity(invalid ? 'Enter digits only. Mileage must be a whole number from 0 and up.' : '');
+  return !invalid;
+}
+document.getElementById('garageVehicleKm').addEventListener('input', event=>validateGarageMileage(event.currentTarget));
+async function addGarageVehicle(event){
+  event.preventDefault();
+  const form = event.currentTarget;
+  const mileageInput = form.elements.currentKm;
+  if(!validateGarageMileage(mileageInput)){ mileageInput.reportValidity(); return; }
+  const submitButton = document.getElementById('vehicleSubmitButton');
+  const status = document.getElementById('vehicleFormStatus');
+  const vehicle = Object.fromEntries(new FormData(form).entries());
+  submitButton.disabled = true;
+  status.style.color = 'var(--gray)';
+  status.textContent = 'Saving vehicle...';
+  try{
+    const createdVehicle = await api('/vehicles.php?action=mine', {method:'POST', body:{vehicle}});
+    window.garageData.vehicles.push(createdVehicle);
+    form.reset();
+    closeVehicleDialog();
+    renderGarage(window.garageData);
+  }catch(error){
+    status.style.color = '#dc2626';
+    status.textContent = error.message || 'Could not add this vehicle.';
+  }finally{
+    submitButton.disabled = false;
+  }
+}
+function garageEscape(value){ return escapeHTML(value || '-'); }
+// Build reminders from technician-set mileage/date targets and the latest service summary.
+function serviceNotification(vehicle){
+  const currentKm = vehicle.current_km === null || vehicle.current_km === '' ? null : Number(vehicle.current_km);
+  const nextKm = vehicle.next_service_km === null || vehicle.next_service_km === '' ? null : Number(vehicle.next_service_km);
+  const kmRemaining = Number.isFinite(currentKm) && Number.isFinite(nextKm) ? nextKm - currentKm : null;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const dueDate = vehicle.next_service_date ? new Date(vehicle.next_service_date + 'T00:00:00') : null;
+  const daysRemaining = dueDate ? Math.ceil((dueDate - today) / 86400000) : null;
+  const mileageAlert = kmRemaining !== null && kmRemaining <= 500;
+  const dateAlert = daysRemaining !== null && daysRemaining <= 14;
+  if(!mileageAlert && !dateAlert) return '';
+  const latestRecord = Array.isArray(vehicle.history) ? vehicle.history[0] : null;
+  const serviceName = latestRecord && latestRecord.service_summary || 'service';
+  let message;
+  if(mileageAlert && kmRemaining <= 0){
+    message = kmRemaining < 0
+      ? `Your ${serviceName} is overdue by ${Math.abs(kmRemaining).toLocaleString()} km.`
+      : `Your ${serviceName} is due now.`;
+  } else if(mileageAlert){
+    message = `Your next ${serviceName} is recommended in ${kmRemaining.toLocaleString()} km.`;
+  } else if(daysRemaining <= 0){
+    message = `Your next ${serviceName} is due now.`;
+  } else {
+    message = `Your next ${serviceName} is due in ${daysRemaining} days.`;
+  }
+  return `<div class="garage-notification"><strong>${garageEscape(vehicle.registration_number)}:</strong> ${garageEscape(message)}</div>`;
+}
+function garageDue(vehicle){
+  const today = new Date().toISOString().slice(0,10);
+  const dueByDate = vehicle.next_service_date && vehicle.next_service_date <= today;
+  const dueByKm = vehicle.current_km !== null && vehicle.current_km !== '' && vehicle.next_service_km !== null && vehicle.next_service_km !== '' && Number(vehicle.current_km) >= Number(vehicle.next_service_km);
+  if(!vehicle.next_service_date && !vehicle.next_service_km) return '<span class="badge">Not scheduled</span>';
+  const due = dueByDate || dueByKm;
+  if(!vehicle.next_service_date) return `<span class="badge ${due?'yellow':'green'}">${due?'Due now':'Mileage reminder'}</span>`;
+  return `<span class="badge ${due?'yellow':'green'}">${due?'Due now':'Due '+garageEscape(vehicle.next_service_date)}</span>`;
+}
+// Render profile, rewards, reminders, bookings, and service history from the loaded API data.
+function renderGarage(data){
+  const storedUser = currentUser() || {};
+  const owner = (data && data.owner) || {
+    first_name: data && data.first_name || storedUser.firstName || '',
+    last_name: data && data.last_name || storedUser.lastName || '',
+    email: data && data.email || storedUser.email || '',
+    phone: data && data.phone || storedUser.phone || '',
+    address: data && data.address || '',
+    profile_image: data && data.profile_image || ''
+  };
+  const vehicles = Array.isArray(data) ? data : (Array.isArray(data && data.vehicles) ? data.vehicles : []);
+  const ownerName = [owner.first_name, owner.last_name].filter(Boolean).join(' ') || owner.email || 'Customer';
+  const today = new Date().toISOString().slice(0,10);
+  const dueCount = vehicles.filter(vehicle => {
+    const dueByDate = vehicle.next_service_date && vehicle.next_service_date <= today;
+    const dueByKm = vehicle.current_km !== null && vehicle.current_km !== '' && vehicle.next_service_km !== null && vehicle.next_service_km !== '' && Number(vehicle.current_km) >= Number(vehicle.next_service_km);
+    return dueByDate || dueByKm;
+  }).length;
+  const notifications = vehicles.map(serviceNotification).filter(Boolean);
+  const loyalty = data && data.loyalty || {};
+  const loyaltyBalance = Number(loyalty.balance || 0);
+  const loyaltyTransactions = Array.isArray(loyalty.transactions) ? loyalty.transactions : [];
+  document.getElementById('garageStatus').classList.add('hide');
+  const content = document.getElementById('garageContent');
+  content.classList.remove('hide');
+  content.innerHTML = `
+    <div class="garage-overview">
+      <div class="garage-welcome"><span class="garage-kicker">Customer garage</span><h2>Welcome back, ${garageEscape(owner.first_name || ownerName)}</h2><p>Your vehicles and service records, all in one place.</p></div>
+      <div class="garage-stats"><div class="garage-stat"><span>Vehicles</span><strong>${vehicles.length}</strong></div><div class="garage-stat"><span>Service due</span><strong>${dueCount}</strong></div></div>
+    </div>
+    <section class="garage-loyalty" aria-label="Loyalty and rewards">
+      <div class="garage-loyalty-balance"><span class="garage-loyalty-icon"><i class="fa-solid fa-star" aria-hidden="true"></i></span><div><span>Loyalty balance</span><strong>${loyaltyBalance.toLocaleString()}</strong><small>points available</small></div></div>
+      <div class="garage-loyalty-content"><h3>Your rewards</h3><div class="garage-reward-rules"><div class="garage-reward-rule"><b>Earn points</b>1 point per Rs. 100</div><div class="garage-reward-rule"><b>Service discount</b>100 points = Rs. 100 off</div><div class="garage-reward-rule"><b>Free wash</b>500 points</div></div><p>Points are added after a booking is completed and paid. Apply rewards when booking your next service.</p></div>
+      <div class="garage-loyalty-history" aria-label="Recent loyalty activity">${loyaltyTransactions.length ? loyaltyTransactions.slice(0,4).map(transaction=>`<span>${transaction.transaction_type==='earned'?'+':'−'}${Number(transaction.points).toLocaleString()} pts · ${garageEscape(transaction.description)}</span>`).join('') : '<span>Your points activity will appear here.</span>'}</div>
+    </section>
+    ${notifications.length ? `<section class="garage-notifications" aria-label="Service notifications"><h3>Service notifications</h3>${notifications.join('')}</section>` : ''}
+    <aside class="profile-card">
+      <div class="profile-banner">
+        <div class="profile-avatar-wrap">
+          <div class="profile-avatar-lg" id="profileAvatar">${owner.profile_image ? `<img src="${garageEscape(owner.profile_image)}" alt="Profile image" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><span style="display:none;">${garageEscape(ownerName).charAt(0).toUpperCase()}</span>` : garageEscape(ownerName).charAt(0).toUpperCase()}</div>
+          <div class="profile-avatar-actions">
+            <button class="profile-avatar-action" type="button" title="Add or change profile image" aria-label="Add or change profile image" onclick="chooseProfileImage()"><i class="fa-solid fa-camera" aria-hidden="true"></i></button>
+            <button class="profile-avatar-action" id="removeProfileImageButton" type="button" title="Remove profile image" aria-label="Remove profile image" onclick="stageProfileImageRemoval()" ${owner.profile_image ? '' : 'hidden'}><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+          </div>
+        </div>
+        <div class="profile-identity"><h3>${garageEscape(ownerName)}</h3><span>Rapid Auto customer</span></div>
+      </div>
+      <div class="contact-list"><div class="contact-line"><span>Email</span>${garageEscape(owner.email)}</div>
+      <div class="contact-line"><span>Phone</span>${garageEscape(owner.phone)}</div>
+      <div class="contact-line"><span>Address</span>${garageEscape(owner.address)}</div></div>
+      <form class="profile-form" id="profileForm" onsubmit="updateProfile(event)">
+        <input class="profile-image-input" id="profileImage" name="profileImage" type="file" accept="image/jpeg,image/png,image/webp" onchange="previewProfileImage(event)">
+        <input id="removeProfileImage" name="removeProfileImage" type="hidden" value="0">
+        <div class="field"><label for="profileFirstName">First name</label><input id="profileFirstName" name="firstName" value="${garageEscape(owner.first_name)}" required></div>
+        <div class="field"><label for="profileLastName">Last name</label><input id="profileLastName" name="lastName" value="${garageEscape(owner.last_name)}" required></div>
+        <div class="field"><label for="profilePhone">Phone</label><input id="profilePhone" name="phone" value="${garageEscape(owner.phone)}"></div>
+        <div class="field"><label for="profileAddress">Address</label><textarea id="profileAddress" name="address" rows="3" placeholder="Your home or delivery address">${garageEscape(owner.address)}</textarea></div>
+        <div class="profile-actions"><button class="btn btn-primary" type="submit">Update</button><button class="btn btn-outline" type="button" onclick="discardProfile()" style="color:var(--primary);border-color:var(--border);">Discard</button></div>
+        <p id="profileStatus" role="status" style="font-size:12px;color:var(--gray);margin:0;"></p>
+      </form>
+    </aside>
+    <main class="garage-main">
+      <div class="garage-main-heading"><div><span class="garage-main-kicker">Vehicle overview</span><h2>Your vehicles</h2></div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-outline garage-add-vehicle" type="button" onclick="openVehicleDialog()"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add vehicle</button><a class="btn btn-primary" href="book.html">Book a service</a></div></div>
+      <div class="vehicle-list">
+        ${vehicles.map(vehicle => `
+        <article class="vehicle-card">
+          <div class="vehicle-head"><div class="vehicle-identity"><div><span class="vehicle-type">${garageEscape(vehicle.vehicle_type)}</span><h3 class="vehicle-plate">${garageEscape(vehicle.registration_number)}</h3><p class="vehicle-description">${garageEscape([vehicle.brand,vehicle.model].filter(Boolean).join(' '))} ${vehicle.year ? '('+garageEscape(vehicle.year)+')':''}</p></div><div class="vehicle-status">${garageDue(vehicle)}</div></div></div>
+          <div class="vehicle-meta"><div><span>Vehicle type</span>${garageEscape(vehicle.vehicle_type)}</div><div><span>Colour</span>${garageEscape(vehicle.color)}</div><div><span>Current mileage</span>${vehicle.current_km ? Number(vehicle.current_km).toLocaleString()+' km' : '-'}</div></div>
+          <div class="vehicle-details-grid">
+            <section class="vehicle-detail"><h4>Bookings</h4><span class="vehicle-detail-intro">Linked to ${garageEscape(owner.email)}</span>${vehicle.bookings ? renderBookings(vehicle.bookings) : '<p class="vehicle-detail-intro">Loading booking details...</p>'}</section>
+            <section class="vehicle-detail"><h4>Service history</h4>${vehicle.history ? renderHistory(vehicle.history) : '<p class="vehicle-detail-intro">Loading service details...</p>'}</section>
+          </div>
+        </article>`).join('') || '<div class="garage-empty">No vehicles are linked to your account yet. Contact the service center to register your vehicle.</div>'}
+      </div>
+    </main>`;
+  vehicles.filter(vehicle => !vehicle.history).forEach(loadVehicleHistory);
+}
+function createProfileSnapshot(){
+  const owner = window.garageData && window.garageData.owner ? window.garageData.owner : window.garageData || {};
+  return { first_name:owner.first_name||'', last_name:owner.last_name||'', phone:owner.phone||'', address:owner.address||'', profile_image:owner.profile_image||'' };
+}
+let profilePreviewUrl = null;
+function chooseProfileImage(){ document.getElementById('profileImage').click(); }
+function renderProfileAvatar(imageUrl, name){
+  const avatar = document.getElementById('profileAvatar');
+  const fallback = garageEscape((name || 'Customer').charAt(0).toUpperCase());
+  avatar.innerHTML = imageUrl
+    ? `<img src="${garageEscape(imageUrl)}" alt="Profile image" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><span style="display:none;">${fallback}</span>`
+    : fallback;
+  document.getElementById('removeProfileImageButton').hidden = !imageUrl;
+}
+function previewProfileImage(event){
+  const file = event.target.files && event.target.files[0];
+  if(!file) return;
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 3 * 1024 * 1024){
+    event.target.value = '';
+    document.getElementById('profileStatus').textContent = 'Choose a JPG, PNG, or WebP image up to 3 MB.';
+    document.getElementById('profileStatus').style.color = '#dc2626';
+    return;
+  }
+  if(profilePreviewUrl) URL.revokeObjectURL(profilePreviewUrl);
+  profilePreviewUrl = URL.createObjectURL(file);
+  document.getElementById('removeProfileImage').value = '0';
+  const owner = window.garageData.owner || {};
+  renderProfileAvatar(profilePreviewUrl, [owner.first_name,owner.last_name].filter(Boolean).join(' ') || owner.email);
+  const status = document.getElementById('profileStatus');
+  status.textContent = 'Image selected. Select Update to save.';
+  status.style.color = 'var(--gray)';
+}
+function stageProfileImageRemoval(){
+  document.getElementById('profileImage').value = '';
+  document.getElementById('removeProfileImage').value = '1';
+  if(profilePreviewUrl){ URL.revokeObjectURL(profilePreviewUrl); profilePreviewUrl = null; }
+  const owner = window.garageData.owner || {};
+  renderProfileAvatar('', [owner.first_name,owner.last_name].filter(Boolean).join(' ') || owner.email);
+  const status = document.getElementById('profileStatus');
+  status.textContent = 'Image removal selected. Select Update to save.';
+  status.style.color = 'var(--gray)';
+}
+function discardProfile(){
+  const owner = window.profileSnapshot;
+  if(!owner) return;
+  document.getElementById('profileFirstName').value = owner.first_name;
+  document.getElementById('profileLastName').value = owner.last_name;
+  document.getElementById('profilePhone').value = owner.phone;
+  document.getElementById('profileAddress').value = owner.address;
+  document.getElementById('profileImage').value = '';
+  document.getElementById('removeProfileImage').value = '0';
+  if(profilePreviewUrl){ URL.revokeObjectURL(profilePreviewUrl); profilePreviewUrl = null; }
+  renderProfileAvatar(owner.profile_image, [owner.first_name,owner.last_name].filter(Boolean).join(' ') || owner.email);
+  document.getElementById('profileStatus').textContent = 'Changes discarded.';
+}
+// Save contact and profile-image edits to the API, then redraw from the returned profile.
+async function updateProfile(event){
+  event.preventDefault();
+  const status = document.getElementById('profileStatus');
+  const form = document.getElementById('profileForm');
+  const body = new FormData(form);
+  status.textContent = 'Updating...';
+  try{
+    const response = await fetch(API_BASE + '/profile.php', { method:'POST', headers: authToken ? {Authorization:'Bearer '+authToken} : {}, body });
+    const data = await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(data.error || 'Could not update profile');
+    if(profilePreviewUrl){ URL.revokeObjectURL(profilePreviewUrl); profilePreviewUrl = null; }
+    window.garageData.owner = data;
+    window.profileSnapshot = createProfileSnapshot();
+    const user = currentUser() || {};
+    setDb('currentUser', {...user, firstName:data.first_name, lastName:data.last_name, phone:data.phone});
+    status.textContent = 'Profile updated successfully.';
+    renderGarage(window.garageData);
+  }catch(error){ status.textContent = error.message; status.style.color = '#dc2626'; }
+}
+function renderHistory(history){
+  if(!history.length) return '<p style="color:var(--gray);font-size:13px;margin-top:8px;">No technician service records yet.</p>';
+  return history.map(record => `<div class="history-row"><span class="history-date">${garageEscape(record.service_date)}</span><div class="history-copy"><b>${garageEscape(record.service_summary)}</b><small>${record.odometer_km ? Number(record.odometer_km).toLocaleString()+' km. ':''}${record.issues ? 'Issue: '+garageEscape(record.issues)+'. ':''}${record.recommendations ? 'Recommendation: '+garageEscape(record.recommendations)+'.':''}${record.next_service_date ? 'Next service: '+garageEscape(record.next_service_date)+'.':''}</small></div></div>`).join('');
+}
+function renderBookings(bookings){
+  if(!bookings.length) return '<p style="color:var(--gray);font-size:13px;margin-top:8px;">No bookings for this vehicle yet.</p>';
+  return bookings.map(booking => `<div class="history-row">
+    <span class="history-date">${garageEscape(booking.booking_date)}<br>${garageEscape(booking.time_slot)}</span>
+    <div class="history-copy"><b>${garageEscape(booking.booking_code)}</b>
+      <small>Status: ${garageEscape(booking.status)} · Payment: ${garageEscape(booking.payment_status)} · Rs. ${Number(booking.total_amount || 0).toLocaleString()}</small>
+      <small>Services: ${booking.services && booking.services.length ? booking.services.map(service => `${garageEscape(service.service_name)} (Rs. ${Number(service.price_at_booking || 0).toLocaleString()})`).join(', ') : 'No service details recorded.'}</small>
+      ${booking.notes ? `<small>Notes: ${garageEscape(booking.notes)}</small>` : ''}
+    </div>
+  </div>`).join('');
+}
+// The garage list is compact; detail requests add each vehicle's bookings and service records.
+async function loadVehicleHistory(vehicle){
+  try{
+    const detail = await api('/vehicles.php?action=detail&id='+encodeURIComponent(vehicle.id));
+    vehicle.history = detail.history || [];
+    vehicle.bookings = detail.bookings || [];
+    renderGarage(window.garageData);
+  }catch(error){ vehicle.history = []; }
+}
+// Customer-only bootstrap for the garage's vehicle list, profile, and loyalty balance.
+async function loadGarage(){
+  const status = document.getElementById('garageStatus');
+  const user = currentUser();
+  if(!user || STAFF_ROLES.includes(String(user.role || '').toLowerCase()) || !authToken){ status.innerHTML = '<p>Please log in as a customer to view your garage.</p><button class="btn btn-primary" style="margin-top:12px;" onclick="openAuth(\'login\')">Log in</button>'; return; }
+  await apiReady;
+  if(!LIVE){ status.innerHTML = '<p>Your garage is available when the PHP backend is connected.</p>'; return; }
+  try{
+    const [garage, profile] = await Promise.all([api('/vehicles.php?action=mine'), api('/profile.php')]);
+    let loyalty = null;
+    try{ loyalty = await api('/loyalty.php?action=mine'); }
+    catch(error){ console.warn('Loyalty balance unavailable:', error.message); }
+    window.garageData = {vehicles:garage.vehicles || [], owner:profile, loyalty};
+    window.profileSnapshot = createProfileSnapshot();
+    renderGarage(window.garageData);
+  }
+  catch(error){ status.innerHTML = '<p style="color:#dc2626;">'+garageEscape(error.message || 'Could not load your garage.')+'</p>'; }
+}
+loadGarage();
+</script>
+</body>
+</html>
