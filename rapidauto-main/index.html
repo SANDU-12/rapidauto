@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rapid Auto Service Center — Car Wash & Vehicle Service</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.hero{position:relative;min-height:88vh;display:flex;align-items:center;overflow:hidden;
+  background:linear-gradient(120deg,#0F172A 0%,#132447 55%,#1d3a6e 100%);color:#fff;}
+.hero::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 15% 20%, rgba(37,99,235,.35), transparent 40%),
+             radial-gradient(circle at 85% 80%, rgba(245,158,11,.25), transparent 45%);
+  animation:drift 12s ease-in-out infinite alternate;}
+@keyframes drift{from{opacity:.7}to{opacity:1}}
+.hero-inner{position:relative;z-index:2;max-width:1300px;margin:0 auto;padding:0 5%;display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;width:100%;}
+@media(max-width:900px){.hero-inner{grid-template-columns:1fr;text-align:center;}}
+.hero h1{font-size:clamp(32px,5vw,56px);font-weight:800;line-height:1.1;margin-bottom:16px;opacity:0;animation:riseH .8s ease forwards .1s;}
+.hero p{font-size:18px;color:#cbd5e1;margin-bottom:26px;max-width:520px;opacity:0;animation:riseH .8s ease forwards .3s;}
+.hero .cta-row{display:flex;gap:14px;flex-wrap:wrap;opacity:0;animation:riseH .8s ease forwards .5s;}
+@media(max-width:900px){.hero .cta-row{justify-content:center;}}
+@keyframes riseH{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.hero-stats{display:flex;gap:22px;margin-top:36px;opacity:0;animation:riseH .8s ease forwards .7s;}
+@media(max-width:900px){.hero-stats{justify-content:center;}}
+.stat b{font-size:26px;display:block;color:var(--accent);}
+.stat span{font-size:12px;color:#94a3b8;}
+.hero-video{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:4/3;opacity:0;animation:riseH 1s ease forwards .4s;
+  box-shadow:0 30px 60px rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);}
+.hero-video iframe{width:100%;height:100%;border:none;}
+.pill-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px;justify-content:center;}
+.pill{background:#fff;border:1px solid var(--border);padding:9px 16px;border-radius:30px;font-size:13.5px;font-weight:600;color:var(--primary);}
+.pill:hover{border-color:var(--accent);color:var(--accent);}
+.cta-band{background:linear-gradient(120deg,var(--secondary),#1e40af);border-radius:22px;padding:50px;text-align:center;color:#fff;margin:0 5% 70px;}
+.cta-band h2{font-size:28px;margin-bottom:10px;}
+.cta-band p{color:#dbeafe;margin-bottom:22px;}
+</style>
+</head>
+<body>
+
+<section class="hero" id="home" style="padding-top:0;">
+  <div class="hero-inner">
+    <div>
+      <h1>Your Vehicle Deserves a <span style="color:var(--accent)">Rapid</span> Shine</h1>
+      <p>Professional car wash & full vehicle service in Sri Lanka - book online, watch it happen live, and pay however you like.</p>
+      <div class="cta-row">
+        <a href="book.html" class="btn btn-primary">Book Appointment</a>
+        <a href="services.html" class="btn btn-outline">View Pricing</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><b>1,240+</b><span>Happy Customers</span></div>
+        <div class="stat"><b>16</b><span>Wash Categories</span></div>
+        <div class="stat"><b>4.8★</b><span>Average Rating</span></div>
+      </div>
+    </div>
+    <div class="hero-video" id="heroVideoHost"></div>
+  </div>
+</section>
+
+<section id="about">
+  <div class="section-head">
+    <div class="eyebrow">About Us</div>
+    <h2>Trusted Vehicle Care, Built for Speed</h2>
+    <p>Rapid Auto Service Center handles everything from a quick motorcycle wash to full vehicle detailing, oil changes and mechanical service - for bikes, cars, jeeps, vans and lorries.</p>
+  </div>
+  <div class="why-grid">
+    <div class="why-card reveal"><div class="ic"><img src="images/clock.png" alt="Fast turnaround"></div><h4>Fast Turnaround</h4><p>Most washes done within 30-45 minutes.</p></div>
+    <div class="why-card reveal" style="transition-delay:.05s"><div class="ic"><img src="images/price.png" alt="Transparent pricing"></div><h4>Transparent Pricing</h4><p>Fixed rates, no surprise charges.</p></div>
+    <div class="why-card reveal" style="transition-delay:.1s"><div class="ic"><img src="images/computer.png" alt="Live tracking"></div><h4>Live Tracking</h4><p>See exactly what stage your vehicle is at.</p></div>
+    <div class="why-card reveal" style="transition-delay:.15s"><div class="ic"><img src="images/mechanic.png" alt="Skilled technicians"></div><h4>Skilled Technicians</h4><p>Trained staff for wash & mechanical service.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="section-head">
+    <div class="eyebrow">Categorized For Every Vehicle</div>
+    <h2>Browse Packages By Vehicle Type</h2>
+    <p>Straight from our service counter - every vehicle category we wash and service.</p>
+  </div>
+  <div class="pill-row" id="catPills"></div>
+  <div style="text-align:center;margin-top:26px;"><a href="services.html" class="btn btn-primary">See Full Price List →</a></div>
+</section>
+
+<section>
+  <div class="section-head">
+    <div class="eyebrow">See It In Action</div>
+    <h2>Wash, Wax & Repair - On Video</h2>
+    <p>A look at the kind of detailing, waxing and repair work your vehicle gets.</p>
+  </div>
+  <div class="grid-3" id="homeVideoGrid"></div>
+  <div style="text-align:center;margin-top:26px;"><a href="about.html" class="btn btn-outline" style="color:var(--primary);border-color:var(--border);">See Gallery & Videos →</a></div>
+</section>
+
+<section id="reviews-preview">
+  <div class="section-head">
+    <div class="eyebrow">Customer Reviews</div>
+    <h2>What People Say</h2>
+  </div>
+  <div class="rev-grid" id="revPreview"></div>
+  <div style="text-align:center;margin-top:26px;"><a href="reviews.html" class="btn btn-outline" style="color:var(--primary);border-color:var(--border);">Read All Reviews →</a></div>
+</section>
+
+<section>
+  <div class="section-head">
+    <div class="eyebrow">Vehicle Trends</div>
+    <h2>Latest From Our Blog</h2>
+  </div>
+  <div class="grid-3" id="blogPreview"></div>
+  <div style="text-align:center;margin-top:26px;"><a href="blog.html" class="btn btn-outline" style="color:var(--primary);border-color:var(--border);">Read More Articles →</a></div>
+</section>
+
+<div class="cta-band reveal">
+  <h2>Ready for a Rapid Shine?</h2>
+  <p>Book your slot in under a minute and track it live from your phone.</p>
+  <a href="book.html" class="btn btn-primary">Book Appointment Now</a>
+</div>
+
+<script src="app.js"></script>
+<script>
+document.getElementById('catPills').innerHTML = CATEGORIES.map(c=>`<a href="services.html#${c.replace(/[^\w]/g,'')}" class="pill">${c}</a>`).join('');
+
+const REVIEWS = [
+ {name:"Nadeesha K.",stars:5,text:"Super fast service, my car looked brand new. Live tracking is such a nice touch!",img:"https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500&h=320&fit=crop"},
+ {name:"Ruwan S.",stars:5,text:"Booked online in 2 minutes, no waiting around at the center. Highly recommend.",img:"https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=500&h=320&fit=crop"},
+ {name:"Ishara F.",stars:4,text:"Great wash quality, prices exactly as listed. Will come back for the wax package.",img:"https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=500&h=320&fit=crop"},
+];
+document.getElementById('revPreview').innerHTML = REVIEWS.map(r=>`
+ <div class="rev-card reveal"><img class="rev-photo" src="${r.img}" alt="${r.name} vehicle" onerror="imgFallback(this,'${r.name}')"><div class="rev-body">
+ <div class="stars">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</div><p>"${r.text}"</p>
+ <div class="rev-who"><div class="avatar">${r.name[0]}</div><b style="font-size:13.5px;">${r.name}</b></div></div></div>`).join('');
+
+const BLOG_PREVIEW = [
+ {tag:"EV Trends",title:"Why Electric Vehicles Need a Different Wash Routine",img:"https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=500&h=320&fit=crop"},
+ {tag:"Maintenance",title:"Ceramic Coating vs Wax: What's Worth It in 2026",img:"https://images.unsplash.com/photo-1601362840469-51e4d8d58785?w=500&h=320&fit=crop"},
+ {tag:"News",title:"Sri Lanka's Hybrid Vehicle Boom: What Owners Should Know",img:"https://images.unsplash.com/photo-1553440569-bcc63803a83d?w=500&h=320&fit=crop"},
+];
+document.getElementById('blogPreview').innerHTML = BLOG_PREVIEW.map(b=>`
+ <a href="blog.html" class="blog-card reveal"><img src="${b.img}" alt="${b.title}" onerror="imgFallback(this,'${b.title}')"><div class="bc-body">
+ <span class="blog-tag">${b.tag}</span><h3>${b.title}</h3></div></a>`).join('');
+
+const HOME_VIDEOS = [
+ ['8cdOHzWMbx4','Car Washing'],['6WsM7iMnBbA','Car Waxing & Polishing'],['rQsmeao28Ks','Car Engine Repair'],
+];
+document.getElementById('homeVideoGrid').innerHTML = HOME_VIDEOS.map(([id,t])=>videoCard(id,t)).join('');
+document.getElementById('heroVideoHost').innerHTML = videoCard('56eH7T1z794','Car Wash Detailing');
+</script>
+</body>
+</html>

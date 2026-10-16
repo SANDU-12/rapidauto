@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — Rapid Auto Service Center</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.tab-row-sm{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.tab-row-sm button{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:#fff;font-size:12.5px;font-weight:600;}
+.tab-row-sm button.on{background:var(--primary);color:#fff;border-color:var(--primary);}
+.crud-modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;}
+.crud-modal{background:#fff;border-radius:14px;padding:26px;width:100%;max-width:480px;max-height:88vh;overflow:auto;}
+.crud-modal h3{margin-bottom:16px;}
+.avail-select{padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-weight:600;}
+.booking-actions{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:210px;}
+.booking-main-actions,.booking-stage-actions{display:flex;align-items:center;justify-content:center;gap:5px;}
+.booking-actions .small-btn{font-weight:700;white-space:nowrap;}
+.stage-arrow-btn{min-width:34px;padding:5px 9px;font-size:18px;line-height:1;font-weight:900 !important;}
+.stage-advance-btn{min-width:82px;padding:6px 10px;font-weight:800 !important;}
+</style>
+</head>
+<body>
+<div class="dash-wrap" id="adminDash">
+  <div class="sidebar">
+    <div class="logo">RAPID<span style="color:var(--accent)">AUTO</span></div>
+    <a class="side-link on" data-tab="overview" onclick="showAdminTab('overview',this)">📊 Overview</a>
+    <a class="side-link" data-tab="bookings" onclick="showAdminTab('bookings',this)">📅 Bookings</a>
+    <a class="side-link" data-tab="customers" onclick="showAdminTab('customers',this)">👥 Customers</a>
+    <a class="side-link" data-tab="vehicles" onclick="showAdminTab('vehicles',this)">🚗 Owners & Vehicles</a>
+    <a class="side-link" data-tab="services" onclick="showAdminTab('services',this)">🧾 Services</a>
+    <a class="side-link" data-tab="products" onclick="showAdminTab('products',this)">🛒 Products</a>
+    <a class="side-link" data-tab="inventory" onclick="showAdminTab('inventory',this)">📦 Inventory</a>
+    <a class="side-link" data-tab="purchases" onclick="showAdminTab('purchases',this)">🧮 Purchase Records</a>
+    <a class="side-link" data-tab="supplierOrders" onclick="showAdminTab('supplierOrders',this)">🚚 Supplier Orders</a>
+    <a class="side-link" data-tab="payments" onclick="showAdminTab('payments',this)">💳 Payments</a>
+    <a class="side-link" data-tab="reviews" onclick="showAdminTab('reviews',this)">⭐ Reviews</a>
+    <a class="side-link" data-tab="employees" onclick="showAdminTab('employees',this)">🧑‍🔧 Employees & Technicians</a>
+    <a class="side-link" data-tab="reports" onclick="showAdminTab('reports',this)">📈 Reports</a>
+    <a class="side-link" href="index.html" style="margin-top:20px;color:#fca5a5;" onclick="localStorage.removeItem('isAdmin')">↩ Exit to Website</a>
+  </div>
+  <div class="dash-main">
+    <div class="dash-top"><h2>Admin Dashboard</h2><span style="font-size:13px;color:var(--gray);">Logged in as admin@rapid.lk <span id="modeTag" style="margin-left:8px;padding:2px 8px;border-radius:10px;font-size:11px;background:#f1f5f9;"></span></span></div>
+    <div id="adminContent"></div>
+  </div>
+</div>
+<div id="crudModalHost"></div>
+
+<script>
+function db(key,fallback){ const v = localStorage.getItem(key); return v? JSON.parse(v): fallback; }
+function setDb(key,val){ localStorage.setItem(key, JSON.stringify(val)); }
+if(!db('isAdmin', false)){ location.href = 'index.html'; }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="app.js"></script>
+<script>
+// STAGES is already defined in app.js (loaded before this script) — do not redeclare it here.
+
+(async ()=>{ await apiReady; document.getElementById('modeTag').textContent = LIVE ? '● Live DB' : '● Demo Mode'; document.getElementById('modeTag').style.color = LIVE ? '#065f46' : '#92400e'; })();
+
+/* ============ generic modal helper for CRUD forms ============ */
+function openCrudModal(title, fieldsHTML, onSave){
+  document.getElementById('crudModalHost').innerHTML = `
+    <div class="crud-modal-bg" onclick="if(event.target===this) closeCrudModal()">
+      <div class="crud-modal">
+        <h3>${title}</h3>
+        <div id="crudFields">${fieldsHTML}</div>
+        <div style="display:flex;gap:10px;margin-top:18px;">
+          <button class="btn btn-primary" style="flex:1;" id="crudSaveBtn">Save</button>
+          <button class="btn" style="flex:1;background:#f1f5f9;" onclick="closeCrudModal()">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('crudSaveBtn').onclick = onSave;
+}
+function closeCrudModal(){ document.getElementById('crudModalHost').innerHTML = ''; }
+function fv(id){ return document.getElementById(id).value; }
+
+/* ============ TAB ROUTER ============ */
+const TAB_RENDERERS = {
+  overview: renderOverview, bookings: renderBookings, customers: renderCustomers, vehicles: renderVehicles,
+  services: renderServices, products: renderProducts, inventory: renderInventory, purchases: renderPurchases,
+  supplierOrders: renderSupplierOrders, payments: renderPayments, reviews: renderReviews,
+  employees: renderEmployees, reports: renderReports,
+};
+async function showAdminTab(tab, el){
+  document.querySelectorAll('.side-link').forEach(s=>s.classList.remove('on'));
+  if(el) el.classList.add('on');
+  const c = document.getElementById('adminContent');
+  c.innerHTML = '<p style="color:var(--gray);">Loading…</p>';
+  const renderer = TAB_RENDERERS[tab];
+  if(!renderer){ c.innerHTML = `<p style="color:#dc2626;">Unknown section: ${tab}</p>`; return; }
+  try{
+    await apiReady;
+    await renderer(c);
+  }catch(e){
+    console.error('Admin tab render failed:', tab, e);
+    c.innerHTML = `<div class="card"><p style="color:#dc2626;font-weight:600;">This section hit an error and couldn't load.</p>
+      <p style="color:var(--gray);font-size:13px;margin:8px 0 14px;">${(e && e.message) ? e.message : e}</p>
+      <button class="btn btn-primary" onclick="showAdminTab('${tab}', document.querySelector('[data-tab=\\'${tab}\\']'))">Retry</button></div>`;
+  }
+}
+
+/* ============ helpers to get data (live API or demo localStorage) ============ */
+async function getBookings(){
+  if(LIVE){ try{ return await api('/bookings.php'); }catch(e){ return []; } }
+  return db('bookings',[]);
+}
+
+/* ============ OVERVIEW ============ */
+async function renderOverview(c){
+  const all = await getBookings();
+  let revenue, completed;
+  if(LIVE){ revenue = all.reduce((a,b)=>a+Number(b.total_amount||0),0); completed = all.filter(b=>b.status==='completed').length; }
+  else { revenue = all.reduce((a,b)=>a+b.total,0); completed = all.filter(b=>b.stageIndex===STAGES.length-1).length; }
+
+  let lowStock = [], recentReviews = [];
+  if(LIVE){
+    try{ lowStock = (await api('/inventory.php?section=items')).filter(i=>i.status==='low_stock'); }catch(e){}
+    try{ recentReviews = (await api('/reviews.php')).slice(0,3); }catch(e){}
+  }
+
+  c.innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi"><span>Total Bookings</span><b>${all.length}</b></div>
+      <div class="kpi"><span>Total Revenue</span><b>Rs. ${revenue.toLocaleString()}</b></div>
+      <div class="kpi"><span>Completed Services</span><b>${completed}</b></div>
+      <div class="kpi"><span>Avg. Rating</span><b>4.8 ★</b></div>
+    </div>
+    <div class="card" style="margin-bottom:16px;"><h4 style="margin-bottom:12px;">Recent Bookings</h4>
+      <table class="dash-table"><tr><th>ID</th><th>Customer</th><th>Vehicle</th><th>Total</th><th>Stage/Status</th></tr>
+      ${all.slice(-6).reverse().map(b=>LIVE?
+        `<tr><td>${b.booking_code}</td><td>${b.guest_name||'-'}</td><td>${b.vehicle_type||'-'}</td><td>Rs.${b.total_amount}</td><td><span class="badge blue">${b.status}</span></td></tr>`
+        :`<tr><td>${b.id}</td><td>${b.name||'-'}</td><td>${b.vehicleType}</td><td>Rs.${b.total}</td><td><span class="badge blue">${STAGES[b.stageIndex]}</span></td></tr>`
+      ).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--gray);">No bookings yet</td></tr>'}
+      </table></div>
+    ${LIVE ? `
+    <div class="card" style="margin-bottom:16px;"><h4 style="margin-bottom:12px;">⚠️ Low Stock Alerts</h4>
+      ${lowStock.length ? lowStock.map(i=>`<div class="summary-row"><span>${i.name}</span><span class="badge yellow">${i.quantity} left (min ${i.minimum_stock})</span></div>`).join('') : '<p style="color:var(--gray);font-size:13px;">Nothing running low right now.</p>'}
+      </div>
+    <div class="card"><h4 style="margin-bottom:12px;">Recent Reviews</h4>
+      ${recentReviews.length ? recentReviews.map(r=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);"><b>${r.reviewer_name}</b> — ${'★'.repeat(r.rating)}<p style="font-size:12.5px;color:var(--gray);">${r.comment}</p></div>`).join('') : '<p style="color:var(--gray);font-size:13px;">No reviews yet.</p>'}
+      </div>` : ''}`;
+}
+
+/* ============ BOOKINGS ============ */
+async function renderBookings(c){
+  const all = await getBookings();
+  c.innerHTML = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h4>All Bookings</h4><button class="btn btn-primary" onclick="openBookingForm()" ${LIVE?'':'disabled title="Connect the PHP backend to add bookings"'}>+ Add Booking</button>
+    </div>
+    <table class="dash-table"><tr><th>ID</th><th>Customer</th><th>Phone</th><th>Vehicle</th><th>Date</th><th>Total</th><th>Payment</th><th>Stage</th><th>Actions</th></tr>
+    ${all.slice().reverse().map(b=>LIVE?
+      `<tr><td>${b.booking_code}</td><td>${b.guest_name||'-'}</td><td>${b.guest_phone||'-'}</td><td>${b.vehicle_type||'-'}</td><td>${b.booking_date}</td><td>Rs.${b.total_amount}</td>
+      <td><span class="badge ${b.payment_record_status==='success'?'green':'yellow'}">${b.payment_record_status||'pending'}</span></td><td><span class="badge blue">${STAGES[b.tracking_stage_index]}</span></td>
+      <td><div class="booking-actions"><div class="booking-main-actions"><button class="small-btn" onclick="viewBookingDetail(${b.id})">View</button>
+      <button class="small-btn" onclick='openBookingForm(${JSON.stringify(b).replace(/'/g,"&apos;")})'>Edit</button>
+      <button class="small-btn danger" onclick="deleteBooking(${b.id})">Delete</button></div>
+      <div class="booking-stage-actions"><button class="small-btn stage-arrow-btn" title="Previous stage" aria-label="Move to previous stage" onclick="moveStage('${b.id}',-1,true)" ${b.tracking_stage_index<=0?'disabled':''}>←</button>
+      <button class="small-btn ok stage-advance-btn" title="Advance to next stage" aria-label="Advance to next stage" onclick="moveStage('${b.id}',1,true)" ${b.tracking_stage_index>=STAGES.length-1?'disabled':''}>Advance</button>
+      <button class="small-btn stage-arrow-btn" title="Next stage" aria-label="Move to next stage" onclick="moveStage('${b.id}',1,true)" ${b.tracking_stage_index>=STAGES.length-1?'disabled':''}>→</button></div></div></td></tr>`
+      :`<tr><td>${b.id}</td><td>${b.name||'-'}</td><td>${b.phone||'-'}</td><td>${b.vehicleType}</td><td>${b.date}</td><td>Rs.${b.total}</td>
+      <td><span class="badge yellow">${b.pay}</span></td><td><span class="badge blue">${STAGES[b.stageIndex]}</span></td>
+      <td><div class="booking-actions"><div class="booking-main-actions"><button class="small-btn" onclick="alert('Booking details are available in live mode.')">View</button>
+      <button class="small-btn" onclick="alert('Connect the PHP backend to edit bookings.')">Edit</button>
+      <button class="small-btn danger" onclick="alert('Connect the PHP backend to delete bookings.')">Delete</button></div>
+      <div class="booking-stage-actions"><button class="small-btn stage-arrow-btn" title="Previous stage" aria-label="Move to previous stage" onclick="moveStage('${b.id}',-1,false)" ${b.stageIndex<=0?'disabled':''}>←</button>
+      <button class="small-btn ok stage-advance-btn" title="Advance to next stage" aria-label="Advance to next stage" onclick="moveStage('${b.id}',1,false)" ${b.stageIndex>=STAGES.length-1?'disabled':''}>Advance</button>
+      <button class="small-btn stage-arrow-btn" title="Next stage" aria-label="Move to next stage" onclick="moveStage('${b.id}',1,false)" ${b.stageIndex>=STAGES.length-1?'disabled':''}>→</button></div></div></td></tr>`
+    ).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--gray);">No bookings yet</td></tr>'}
+    </table></div>`;
+}
+async function moveStage(id, direction, live){
+  if(live){
+    try{ await api('/bookings.php?action=stage&id='+id+'&direction='+direction, {method:'PATCH'}); }
+    catch(e){ alert(e.message); }
+    showAdminTab('bookings', document.querySelector('.side-link.on')); return;
+  }
+  const all = db('bookings',[]); const rec = all.find(b=>b.id===id);
+  if(rec) rec.stageIndex = Math.max(0, Math.min(STAGES.length-1, rec.stageIndex + direction));
+  setDb('bookings', all); showAdminTab('bookings', document.querySelector('.side-link.on'));
+}
+async function viewBookingDetail(id){
+  try{
+    const b = await api('/bookings.php?action=detail&id='+id);
+    openCrudModal('Booking ' + b.booking_code, `
+      <div class="summary-row"><span>Customer</span><b>${b.guest_name||'-'}</b></div>
+      <div class="summary-row"><span>Phone</span><b>${b.guest_phone||'-'}</b></div>
+      <div class="summary-row"><span>Email</span><b>${b.guest_email||'-'}</b></div>
+      <div class="summary-row"><span>Vehicle</span><b>${b.vehicle_type||'-'} ${b.brand||''} ${b.model||''} (${b.registration_number||'-'})</b></div>
+      <div class="summary-row"><span>Date / Slot</span><b>${b.booking_date} — ${b.time_slot}</b></div>
+      <div class="summary-row"><span>Status</span><b>${b.status}</b></div>
+      <div class="summary-row"><span>Notes</span><b>${b.notes||'-'}</b></div>
+      <div style="margin-top:10px;"><b>Services</b>
+        ${(b.services||[]).map(s=>`<div class="summary-row"><span>${s.service_name}</span><span>Rs. ${Number(s.price_at_booking).toLocaleString()}</span></div>`).join('') || '<p style="color:var(--gray);font-size:13px;">No services on record</p>'}
+      </div>
+      <div class="summary-row total"><span>Total</span><span>Rs. ${Number(b.total_amount).toLocaleString()}</span></div>
+      ${b.payment ? `<div class="summary-row"><span>Payment</span><b>${b.payment.payment_method} — ${b.payment.status}</b></div>` : ''}
+    `, closeCrudModal);
+    document.getElementById('crudSaveBtn').textContent = 'Close';
+  }catch(e){ alert(e.message); }
+}
+function openBookingForm(b){
+  const editing = !!b;
+  openCrudModal(editing?'Edit Booking '+b.booking_code:'Add Booking', `
+    <div class="field"><label>Customer Name</label><input id="bkName" value="${b?b.guest_name||'':''}"></div>
+    <div class="field"><label>Phone</label><input id="bkPhone" value="${b?b.guest_phone||'':''}"></div>
+    <div class="field"><label>Email</label><input id="bkEmail" value="${b?b.guest_email||'':''}"></div>
+    <div class="field"><label>Date</label><input type="date" id="bkDate" value="${b?b.booking_date:''}"></div>
+    <div class="field"><label>Time Slot</label><input id="bkSlot" value="${b?b.time_slot:''}" placeholder="e.g. 10:00 AM"></div>
+    <div class="field"><label>Total Amount (Rs.)</label><input type="text" inputmode="decimal" id="bkTotal" value="${b?b.total_amount:0}"></div>
+    <div class="field"><label>Notes</label><input id="bkNotes" value="${b&&b.notes?b.notes:''}"></div>
+    ${editing?`<div class="field"><label>Status</label><select id="bkStatus">${['pending','confirmed','in_progress','completed','cancelled'].map(s=>`<option value="${s}" ${b.status===s?'selected':''}>${s}</option>`).join('')}</select></div>`:''}
+    ${!editing?'<p style="font-size:12px;color:var(--gray);">To add a full booking with services and vehicle, use the public Book Now page. This quick-add creates a bare booking record.</p>':''}
+  `, async ()=>{
+    if(editing){
+      const payload = { guestName: fv('bkName'), guestPhone: fv('bkPhone'), guestEmail: fv('bkEmail'), date: fv('bkDate'), slot: fv('bkSlot'), totalAmount: Number(fv('bkTotal')), notes: fv('bkNotes'), status: fv('bkStatus') };
+      try{ await api('/bookings.php?id='+b.id, {method:'PUT', body:payload}); }catch(e){ alert(e.message); return; }
+    } else {
+      const payload = { items:[], services:[], guestInfo:{ name: fv('bkName'), phone: fv('bkPhone'), email: fv('bkEmail') }, date: fv('bkDate'), slot: fv('bkSlot'), totalAmount: Number(fv('bkTotal')), notes: fv('bkNotes'), paymentMethod:'Cash' };
+      if(!payload.date || !payload.slot){ alert('Date and time slot are required.'); return; }
+      try{ await api('/bookings.php', {method:'POST', body:payload}); }catch(e){ alert(e.message); return; }
+    }
+    closeCrudModal(); showAdminTab('bookings', document.querySelector('.side-link.on'));
+  });
+}
+async function deleteBooking(id){
+  if(!confirm('Permanently delete this booking? This cannot be undone.')) return;
+  try{ await api('/bookings.php?id='+id, {method:'DELETE'}); }catch(e){ alert(e.message); }
+  showAdminTab('bookings', document.querySelector('.side-link.on'));
+}
+
+/* ============ CUSTOMERS ============ */
+// Accept current and legacy customer API response shapes before rendering the table.
+function normalizeCustomerList(response){
+  if(Array.isArray(response)) return response;
+  if(!response || typeof response!=='object') throw new Error('Customer API returned a non-object response.');
+  for(const key of ['customers','data','rows','results','items','records','list']){
+    if(Array.isArray(response[key])) return response[key];
+    if(response[key] && typeof response[key]==='object'){
+      for(const nestedKey of ['customers','rows','results','items','records','list']){
+        if(Array.isArray(response[key][nestedKey])) return response[key][nestedKey];
+      }
+    }
+  }
+  const values = Object.values(response);
+  if(values.length && values.every(row=>row && typeof row==='object' && ('phone' in row || 'name' in row || 'email' in row))) return values;
+  if(!values.length || response.success===true || response.status==='success') return [];
+  throw new Error('Customer API returned an unexpected response (keys: '+Object.keys(response).join(', ')+').');
+}
+async function renderCustomers(c){
+  let list = [];
+  let loadError = '';
+  if(LIVE){
+    try{
+      const response = await api('/customers.php');
+      list = normalizeCustomerList(response);
+    }catch(e){ loadError = e.message || 'Could not load customers.'; }
+  }
+  else {
+    const storedBookings = db('bookings',[]);
+    const all = Array.isArray(storedBookings) ? storedBookings : [];
+    const uniq = {};
+    all.forEach(b=>{ if(b.phone) uniq[b.phone]={name:b.name,phone:b.phone,email:b.email,booking_count:(uniq[b.phone]?.booking_count||0)+1}; });
+    list = Object.values(uniq);
+  }
+  c.innerHTML = `<div class="card"><h4 style="margin-bottom:12px;">Customers</h4>
+   ${loadError?`<p role="alert" style="color:#dc2626;margin:0 0 12px;">${escapeHTML(loadError)}</p>`:''}
+   <table class="dash-table"><tr><th>Name</th><th>Phone</th><th>Email</th><th>Bookings</th><th>Total Spent</th><th>Actions</th></tr>
+   ${list.map(u=>`<tr><td>${u.name||'-'}</td><td>${u.phone||'-'}</td><td>${u.email||'-'}</td><td>${u.booking_count||0}</td><td>${u.total_spent?'Rs. '+Number(u.total_spent).toLocaleString():'-'}</td>
+   <td><button class="small-btn" onclick="viewCustomerDetail('${u.phone}')">View</button>
+   <button class="small-btn" onclick="openCustomerForm('${u.phone}','${(u.name||'').replace(/'/g,"&apos;")}','${u.email||''}')">Edit</button>
+   <button class="small-btn danger" onclick="deleteCustomer('${u.phone}')">Delete</button></td></tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--gray);">No customers yet</td></tr>'}
+   </table></div>`;
+}
+async function viewCustomerDetail(phone){
+  if(!LIVE){ alert('Connect the PHP backend to view full customer history.'); return; }
+  try{
+    const cst = await api('/customers.php?action=detail&phone='+encodeURIComponent(phone));
+    openCrudModal('Customer: ' + (cst.name||cst.phone), `
+      <div class="summary-row"><span>Phone</span><b>${cst.phone}</b></div>
+      <div class="summary-row"><span>Email</span><b>${cst.email||'-'}</b></div>
+      <div class="summary-row"><span>Total Bookings</span><b>${cst.bookingCount}</b></div>
+      <div class="summary-row total"><span>Total Spent</span><span>Rs. ${Number(cst.totalSpent).toLocaleString()}</span></div>
+      <div style="margin-top:14px;"><b>Booking History</b>
+      ${cst.bookings.map(b=>`<div class="summary-row"><span>${b.booking_code} — ${b.booking_date}</span><span>Rs. ${Number(b.total_amount).toLocaleString()} (${b.status})</span></div>`).join('')}
+      </div>
+    `, closeCrudModal);
+    document.getElementById('crudSaveBtn').textContent = 'Close';
+  }catch(e){ alert(e.message); }
+}
+function openCustomerForm(phone, name, email){
+  openCrudModal('Edit Customer', `
+    <div class="field"><label>Name</label><input id="cuName" value="${name}"></div>
+    <div class="field"><label>Phone</label><input id="cuPhone" value="${phone}"></div>
+    <div class="field"><label>Email</label><input id="cuEmail" value="${email}"></div>
+    <p style="font-size:12px;color:var(--gray);">This updates contact info across all of this customer's bookings.</p>
+  `, async ()=>{
+    if(!LIVE){ alert('Connect the PHP backend to edit customers.'); return; }
+    try{ await api('/customers.php?phone='+encodeURIComponent(phone), {method:'PUT', body:{ name: fv('cuName'), phone: fv('cuPhone'), email: fv('cuEmail') }}); }
+    catch(e){ alert(e.message); return; }
+    closeCrudModal(); showAdminTab('customers', document.querySelector('.side-link.on'));
+  });
+}
+async function deleteCustomer(phone){
+  if(!confirm('Delete this customer and all their booking records? This cannot be undone.')) return;
+  if(!LIVE){ alert('Connect the PHP backend to delete customers.'); return; }
+  try{ await api('/customers.php?phone='+encodeURIComponent(phone), {method:'DELETE'}); }catch(e){ alert(e.message); }
+  showAdminTab('customers', document.querySelector('.side-link.on'));
+}
+
+/* ============ OWNERS, VEHICLES & CHECK-IN ============ */
+function vehicleOwnerName(v){ return [v.first_name,v.last_name].filter(Boolean).join(' ') || 'Owner not named'; }
+function vehicleDueLabel(v){
+  if(v.next_service_date && v.next_service_date <= new Date().toISOString().slice(0,10)) return '<span class="badge yellow">Due now</span>';
+  if(v.next_service_date) return `<span class="badge green">Due ${v.next_service_date}</span>`;
+  return '<span class="badge">Not scheduled</span>';
+}
+async function renderVehicles(c, initialSearch=''){
+  let list = [];
+  if(LIVE){
+    try{
+      const response = await api('/vehicles.php?search='+encodeURIComponent(initialSearch));
+      if(response && !Array.isArray(response) && response.error) throw new Error(response.error);
+      list = Array.isArray(response) ? response : (Array.isArray(response.data) ? response.data : []);
+    }catch(e){ c.innerHTML = `<div class="card"><p style="color:#dc2626;">${escapeHTML(e.message || 'Vehicle data could not be loaded.')}</p><p style="color:var(--gray);font-size:12px;margin-top:8px;">Check that the vehicle tables from schema.sql have been applied and that you are logged in as staff.</p></div>`; return; }
+  }
+  c.innerHTML = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+      <div><h4>Owners & Vehicles</h4><p style="font-size:12px;color:var(--gray);margin-top:4px;">Search by plate, owner name, or phone.</p></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;"><input id="vehicleSearch" value="${initialSearch}" placeholder="Plate / name / phone" onkeydown="if(event.key==='Enter') searchVehicles()"><button class="btn btn-primary" onclick="searchVehicles()">Search</button><button class="btn" onclick="openVehicleForm()">+ Check in vehicle</button></div>
+    </div>
+    <table class="dash-table"><tr><th>Plate</th><th>Owner</th><th>Phone</th><th>Vehicle</th><th>Last Visit</th><th>Next Service</th><th>Actions</th></tr>
+    ${list.map(v=>`<tr><td><b>${v.registration_number}</b></td><td><a href="#" onclick="openOwnerProfile('${(v.owner_phone||'').replace(/'/g,"\\'")}');return false;">${vehicleOwnerName(v)}</a></td><td>${v.owner_phone||'-'}</td><td>${v.vehicle_type} ${v.brand||''} ${v.model||''}</td><td>${v.last_service_date||'-'}</td><td>${vehicleDueLabel(v)}</td><td><button class="small-btn" onclick="viewVehicle(${v.id})">History</button><button class="small-btn" onclick='openVehicleForm(${JSON.stringify(v).replace(/'/g,"&apos;")})'>Edit</button>${isVehicleAdmin()?`<button class="small-btn danger" onclick="deactivateVehicle(${v.id})">Deactivate</button>`:''}</td></tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--gray);">No active vehicles found</td></tr>'}
+    </table></div>`;
+}
+// This only controls visible UI; vehicles.php remains the authoritative permission check.
+function isVehicleAdmin(){ return ['super_admin','manager'].includes(currentUser()?.role) || localStorage.getItem('isAdmin') === 'true'; }
+function searchVehicles(){ renderVehicles(document.getElementById('adminContent'), document.getElementById('vehicleSearch').value.trim()); }
+async function openOwnerProfile(phone){
+  if(!phone) return;
+  try{
+    const response = await api('/vehicles.php?search='+encodeURIComponent(phone));
+    if(response && !Array.isArray(response) && response.error) throw new Error(response.error);
+    const vehicles = Array.isArray(response) ? response : (Array.isArray(response.data) ? response.data : []);
+    const first = vehicles[0];
+    if(!first){ alert('Owner not found.'); return; }
+    openCrudModal('Owner Profile', `<div class="summary-row"><span>Name</span><b>${vehicleOwnerName(first)}</b></div><div class="summary-row"><span>Phone</span><b>${first.owner_phone||'-'}</b></div><div class="summary-row"><span>Email</span><b>${first.owner_email||'-'}</b></div><div style="margin-top:14px;"><b>Vehicles</b>${vehicles.map(v=>`<div class="summary-row"><span>${v.registration_number} — ${v.brand||''} ${v.model||''}</span><button class="small-btn" onclick="closeCrudModal();viewVehicle(${v.id})">History</button></div>`).join('')}</div>`, closeCrudModal);
+    document.getElementById('crudSaveBtn').textContent = 'Close';
+  }catch(e){ alert(e.message); }
+}
+async function viewVehicle(id){
+  try{
+    const v = await api('/vehicles.php?action=detail&id='+id);
+    openCrudModal(`${v.registration_number} — ${vehicleOwnerName(v)}`, `<div class="summary-row"><span>Contact</span><b>${v.owner_phone||'-'} · ${v.owner_email||'-'}</b></div><div class="summary-row"><span>Vehicle</span><b>${v.vehicle_type} ${v.brand||''} ${v.model||''} ${v.year||''}</b></div><div class="summary-row"><span>Reminder</span><b>${v.next_service_date||'Not scheduled'}${v.next_service_km?' / '+v.next_service_km.toLocaleString()+' km':''}</b></div><div style="margin-top:14px;"><b>Service history</b>${(v.history||[]).map(h=>`<div style="padding:10px 0;border-bottom:1px solid var(--border);"><b>${h.service_date} — ${h.service_summary}</b><div style="font-size:12px;color:var(--gray);">${h.issues?'Issue: '+h.issues+' · ':''}${h.recommendations?'Next: '+h.recommendations:''}</div></div>`).join('')||'<p style="color:var(--gray);font-size:13px;margin-top:8px;">No service records yet.</p>'}</div>`, closeCrudModal);
+    document.getElementById('crudSaveBtn').textContent = 'Close';
+    const add = document.createElement('button'); add.className='btn btn-primary'; add.textContent='Add service record'; add.onclick=()=>{ closeCrudModal(); openServiceRecordForm(v); }; document.getElementById('crudSaveBtn').parentElement.prepend(add);
+  }catch(e){ alert(e.message); }
+}
+function openVehicleForm(v){
+  const editing = !!v;
+  openCrudModal(editing?'Edit Vehicle':'Quick Check-in / Add Vehicle', `<div class="field"><label>Plate number</label><input id="vhPlate" value="${v?v.registration_number:''}" placeholder="ABC 1234" required></div><div class="form-grid"><div class="field"><label>Owner name</label><input id="vhOwner" value="${v?vehicleOwnerName(v):''}" ${editing?'disabled':''}></div><div class="field"><label>Phone</label><input id="vhPhone" value="${v?v.owner_phone:''}" ${editing?'disabled':''}></div></div><div class="field"><label>Email</label><input id="vhEmail" type="email" value="${v?v.owner_email:''}" ${editing?'disabled':''}></div><div class="form-grid"><div class="field"><label>Vehicle type</label><select id="vhType">${CATEGORIES.map(t=>`<option ${v&&v.vehicle_type===t?'selected':''}>${t}</option>`).join('')}</select></div><div class="field"><label>Brand / model</label><input id="vhModel" value="${v?[v.brand,v.model].filter(Boolean).join(' '):''}"></div></div><div class="form-grid"><div class="field"><label>Current km</label><input id="vhKm" type="number" min="0" value="${v&&v.current_km||''}"></div><div class="field"><label>Next service date</label><input id="vhDue" type="date" value="${v&&v.next_service_date||''}"></div></div><div class="field"><label>Next service km</label><input id="vhDueKm" type="number" min="0" value="${v&&v.next_service_km||''}"></div>`, async ()=>{
+    const model = fv('vhModel').trim().split(/\s+/); const payload = {vehicleType:fv('vhType'),brand:model.shift()||null,model:model.join(' ')||null,registrationNumber:fv('vhPlate'),currentKm:fv('vhKm')?Number(fv('vhKm')):null,nextServiceDate:fv('vhDue')||null,nextServiceKm:fv('vhDueKm')?Number(fv('vhDueKm')):null};
+    if(!payload.registrationNumber){ alert('Plate number is required.'); return; }
+    try{ if(editing) await api('/vehicles.php?id='+v.id,{method:'PUT',body:payload}); else { payload.owner={name:fv('vhOwner'),phone:fv('vhPhone'),email:fv('vhEmail')}; if(!payload.owner.name||!payload.owner.phone){ alert('Owner name and phone are required.'); return; } await api('/vehicles.php',{method:'POST',body:payload}); } }catch(e){ alert(e.message); return; }
+    closeCrudModal(); showAdminTab('vehicles', document.querySelector('.side-link.on'));
+  });
+}
+function openServiceRecordForm(v){
+  openCrudModal('Add Service Record — '+v.registration_number, `<div class="field"><label>Service date</label><input id="srDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div><div class="field"><label>Work completed</label><input id="srSummary" placeholder="Oil change, brake inspection..."></div><div class="field"><label>Odometer km</label><input id="srKm" type="number" min="0" value="${v.current_km||''}"></div><div class="field"><label>Issues found</label><input id="srIssues"></div><div class="field"><label>Recommendations</label><input id="srRecommendations"></div><div class="form-grid"><div class="field"><label>Next service date</label><input id="srNextDate" type="date"></div><div class="field"><label>Next service km</label><input id="srNextKm" type="number" min="0"></div></div>`, async ()=>{ const p={vehicleId:v.id,serviceDate:fv('srDate'),serviceSummary:fv('srSummary'),odometerKm:fv('srKm')?Number(fv('srKm')):null,issues:fv('srIssues'),recommendations:fv('srRecommendations'),nextServiceDate:fv('srNextDate')||null,nextServiceKm:fv('srNextKm')?Number(fv('srNextKm')):null}; if(!p.serviceSummary){alert('Work completed is required.');return;} try{await api('/vehicles.php?action=service',{method:'POST',body:p});}catch(e){alert(e.message);return;} closeCrudModal();viewVehicle(v.id); });
+}
+async function deactivateVehicle(id){ if(!confirm('Deactivate this vehicle? Its service history will be kept.')) return; try{await api('/vehicles.php?id='+id,{method:'DELETE'});renderVehicles(document.getElementById('adminContent'));}catch(e){alert(e.message);} }
+
+/* ============ SERVICES CRUD ============ */
+async function renderServices(c){
+  let list = [];
+  try{ list = await api('/services.php'); }
+  catch(e){ c.innerHTML = `<div class="card"><p style="color:#dc2626;">${escapeHTML(e.message)}</p></div>`; return; }
+  c.innerHTML = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h4>Service Packages</h4><button class="btn btn-primary" onclick="openServiceForm()">+ Add Package</button>
+    </div>
+    <table class="dash-table"><tr><th>Service</th><th>Category</th><th>Price</th><th>Status</th><th>Actions</th></tr>
+    ${list.map(s=>`<tr><td>${s.service_name}</td><td>${s.category}</td><td>Rs. ${Number(s.price).toLocaleString()}</td>
+      <td><span class="badge ${s.status==='active'?'green':'yellow'}">${s.status}</span></td>
+      <td><button class="small-btn" onclick='openServiceForm(${JSON.stringify(s).replace(/'/g,"&apos;")})'>Edit</button>
+      <button class="small-btn danger" onclick="hideService('${s.id}')">Hide</button></td></tr>`).join('')}
+    </table></div>`;
+}
+function openServiceForm(s){
+  const editing = !!s;
+  openCrudModal(editing?'Edit Package':'Add New Package', `
+    <div class="field"><label>Category</label>
+      <select id="svCategory">${CATEGORIES.map(c=>`<option ${s&&s.category===c?'selected':''}>${c}</option>`).join('')}<option ${s&&s.category==='Additional Service'?'selected':''}>Additional Service</option></select></div>
+    <div class="field"><label>Service Name</label><input id="svName" value="${s?s.service_name:''}"></div>
+    <div class="field"><label>Description</label><input id="svDesc" value="${s&&s.description?s.description:''}"></div>
+    <div class="field"><label>Price (Rs.)</label><input id="svPrice" type="text" inputmode="decimal" value="${s?s.price:''}"></div>
+  `, async ()=>{
+    const payload = { category: fv('svCategory'), serviceName: fv('svName'), description: fv('svDesc'), price: Number(fv('svPrice')) };
+    if(!payload.serviceName || !payload.price){ alert('Name and price are required.'); return; }
+    try{
+      if(editing) await api('/services.php?id='+s.id, {method:'PUT', body:payload});
+      else await api('/services.php', {method:'POST', body:payload});
+    }catch(e){ alert('Could not save service to the database: ' + e.message); return; }
+    closeCrudModal(); showAdminTab('services', document.querySelector('.side-link.on'));
+  });
+}
+async function hideService(id){
+  if(!confirm('Hide this package from the public price list?')) return;
+  try{ await api('/services.php?id='+id, {method:'DELETE'}); }
+  catch(e){ alert('Could not update service in the database: ' + e.message); return; }
+  showAdminTab('services', document.querySelector('.side-link.on'));
+}
+
+/* ============ PRODUCTS CRUD ============ */
+async function renderProducts(c){
+  let list = [];
+  if(LIVE){
+    try{ list = await api('/products.php?admin=1'); }catch(e){ c.innerHTML = `<div class="card"><p style="color:#dc2626;">${e.message}</p></div>`; return; }
+  } else {
+    const localImages = {
+      p1:'images/eng oil.webp', p2:'images/brake pads.jpg', p3:'images/battery.webp',
+      p4:'images/air.webp', p5:'images/wiper.webp', p6:'images/spark.webp',
+      p7:'images/polish.webp', p8:'images/micro.webp', p9:'images/head.webp',
+      p10:'images/tcleaner.webp', p11:'images/cabin.webp', p12:'images/mats.webp'
+    };
+    list = PRODUCTS.map(p=>({id:p.id,name:p.name,category:p.cat,price:p.price,image:localImages[p.id],stock:'Demo',status:'active'}));
+  }
+  c.innerHTML = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h4>Shop Products</h4><button class="btn btn-primary" onclick="openProductForm()">+ Add Product</button>
+    </div>
+    <table class="dash-table"><tr><th>Image</th><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr>
+    ${list.map(p=>`<tr><td><img src="${p.image||''}" alt="" style="width:52px;height:40px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'"></td>
+      <td>${p.name}</td><td>${p.category||'-'}</td><td>Rs. ${Number(p.price).toLocaleString()}</td><td>${p.stock}</td>
+      <td><span class="badge ${p.status==='active'?'green':'yellow'}">${p.status}</span></td>
+      <td><button class="small-btn" onclick='openProductForm(${JSON.stringify(p).replace(/'/g,"&apos;")})'>Edit</button>
+      ${p.status==='active'?`<button class="small-btn danger" onclick="hideProduct(${p.id})">Hide</button>`:''}</td></tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--gray);">No products yet</td></tr>'}
+    </table></div>`;
+}
+async function uploadProductImage(file){
+  if(!file) return null;
+  const form = new FormData(); form.append('image', file);
+  const res = await fetch(API_BASE + '/products.php?action=upload', {
+    method:'POST', headers: authToken ? {Authorization:'Bearer '+authToken} : {}, body:form
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error || 'Image upload failed');
+  return data.image;
+}
+function openProductForm(p){
+  const editing = !!p;
+  openCrudModal(editing?'Edit Product':'Add Shop Product', `
+    <div class="field"><label>Product Name</label><input id="pdName" value="${p?p.name:''}" placeholder="Car Engine Oil 5W30 (4L)"></div>
+    <div class="field"><label>Category</label><input id="pdCategory" value="${p&&p.category?p.category:''}" placeholder="Fluids"></div>
+    <div class="field"><label>Price (Rs.)</label><input id="pdPrice" type="text" inputmode="decimal" value="${p?p.price:''}"></div>
+    <div class="field"><label>Stock Quantity</label><input id="pdStock" type="number" min="0" value="${p?p.stock:50}"></div>
+    <div class="field"><label>Product Image</label><input id="pdImageFile" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif">
+      <small style="display:block;color:var(--gray);margin-top:5px;">JPG, PNG, WEBP, AVIF, or GIF up to 5 MB.</small></div>
+    <div class="field"><label>Image Path (optional)</label><input id="pdImage" value="${p&&p.image?p.image:''}" placeholder="images/products/example.webp"></div>
+    ${p&&p.status==='inactive'?'<p style="font-size:12px;color:#92400e;">This product is hidden from the shop. Editing it will make it active again.</p>':''}
+  `, async ()=>{
+    const name = fv('pdName').trim();
+    const category = fv('pdCategory').trim();
+    const price = Number(fv('pdPrice'));
+    const stock = Number(fv('pdStock'));
+    const file = document.getElementById('pdImageFile').files[0];
+    if(!name || !Number.isFinite(price) || price < 0){ alert('Product name and a valid price are required.'); return; }
+    if(!Number.isInteger(stock) || stock < 0){ alert('Stock must be a whole number of zero or more.'); return; }
+    if(!LIVE){ alert('Connect the PHP backend (WAMP) to manage shop products.'); return; }
+    const save = document.getElementById('crudSaveBtn'); save.disabled = true; save.textContent = 'Saving...';
+    try{
+      const uploadedImage = await uploadProductImage(file);
+      const payload = { name, category, price, stock, image: uploadedImage || fv('pdImage').trim() || (p&&p.image) || null };
+      if(editing) await api('/products.php?id='+p.id, {method:'PUT', body:payload});
+      else await api('/products.php', {method:'POST', body:payload});
+    }catch(e){ save.disabled = false; save.textContent = 'Save'; alert(e.message); return; }
+    closeCrudModal(); showAdminTab('products', document.querySelector('.side-link.on'));
+  });
+}
+async function hideProduct(id){
+  if(!confirm('Hide this product from the public shop?')) return;
+  if(LIVE){ try{ await api('/products.php?id='+id, {method:'DELETE'}); }catch(e){ alert(e.message); } }
+  else { alert('Connect the PHP backend to manage shop products.'); return; }
+  showAdminTab('products', document.querySelector('.side-link.on'));
+}
+
+/* ============ INVENTORY CRUD ============ */
+async function renderInventory(c){
+  let list = [];
+  if(LIVE){ try{ list = await api('/inventory.php?section=items'); }catch(e){} }
+  else list = [{id:'d1',name:'Car Shampoo',category:'Chemicals',quantity:12,minimum_stock:10,status:'low_stock'},{id:'d2',name:'Microfiber Cloths',category:'Supplies',quantity:40,minimum_stock:15,status:'available'}];
+  c.innerHTML = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h4>Inventory</h4><button class="btn btn-primary" onclick="openInventoryForm()">+ Add Part</button>
+    </div>
+    <table class="dash-table"><tr><th>Item</th><th>Category</th><th>Stock</th><th>Min Stock</th><th>Availability</th><th>Actions</th></tr>
+    ${list.map(i=>`<tr><td>${i.name}</td><td>${i.category||'-'}</td><td>${i.quantity}</td><td>${i.minimum_stock}</td>
+      <td><select class="avail-select" onchange="setAvailability('${i.id}',this.value)">
+        ${['available','low_stock','unavailable'].map(s=>`<option value="${s}" ${i.status===s?'selected':''}>${s.replace('_',' ')}</option>`).join('')}
+      </select></td>
+      <td><button class="small-btn" onclick='openInventoryForm(${JSON.stringify(i).replace(/'/g,"&apos;")})'>Edit</button>
+      <button class="small-btn danger" onclick="hideInventory('${i.id}')">Hide</button></td></tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--gray);">No inventory items</td></tr>'}
+    </table></div>`;
+}
+function openInventoryForm(i){
+  const editing = !!i;
+  openCrudModal(editing?'Edit Part':'Add New Part', `
+    <div class="field"><label>Item Name</label><input id="ivName" value="${i?i.name:''}"></div>
+    <div class="field"><label>Category</label><input id="ivCategory" value="${i&&i.category?i.category:''}"></div>
+    <div class="field"><label>Quantity</label><input id="ivQty" type="number" value="${i?i.quantity:0}"></div>
+    <div class="field"><label>Minimum Stock</label><input id="ivMin" type="number" value="${i?i.minimum_stock:5}"></div>
+    <div class="field"><label>Purchase Price (Rs.)</label><input id="ivPurchase" type="text" inputmode="decimal" value="${i&&i.purchase_price?i.purchase_price:0}"></div>
+    <div class="field"><label>Availability</label>
+      <select id="ivStatus">${['available','low_stock','unavailable'].map(s=>`<option value="${s}" ${i&&i.status===s?'selected':''}>${s.replace('_',' ')}</option>`).join('')}</select></div>
+  `, async ()=>{
+    const payload = { name: fv('ivName'), category: fv('ivCategory'), quantity: Number(fv('ivQty')), minimumStock: Number(fv('ivMin')), purchasePrice: Number(fv('ivPurchase')), status: fv('ivStatus') };
+    if(!payload.name){ alert('Item name is required.'); return; }
+    if(LIVE){
+      try{
+        if(editing) await api('/inventory.php?section=items&id='+i.id, {method:'PUT', body:payload});
+        else await api('/inventory.php?section=items', {method:'POST', body:payload});
+      }catch(e){ alert(e.message); return; }
+    } else { alert('Demo mode: connect the PHP backend to persist inventory changes.'); }
+    closeCrudModal(); showAdminTab('inventory', document.querySelector('.side-link.on'));
+  });
+}
+async function setAvailability(id, status){
+  if(LIVE){ try{ await api('/inventory.php?section=items&id='+id, {method:'PATCH', body:{status}}); }catch(e){ alert(e.message); } }
+  else alert('Demo mode: connect the PHP backend to persist this.');
+}
+async function hideInventory(id){
+  if(!confirm('Mark this item unavailable?')) return;
+  if(LIVE){ try{ await api('/inventory.php?section=items&id='+id, {method:'DELETE'}); }catch(e){ alert(e.message); } }
+  else alert('Demo mode: connect the PHP backend to persist this.');
+  showAdminTab('inventory', document.querySelector('.side-link.on'));
+}
+
+/* ============ PURCHASE RECORDS CRUD ============ */
+async function renderPurchases(c){
+  let list = [];
+  if(LIVE){ try{ list = await api('/inventory.php?section=purchases'); }catch(e){} }
+  c.innerHTML = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h4>Purchase Records</h4><button class="btn btn-primary" onclick="openPurchaseForm()">+ Add Purchase</button>
+    </div>
+    <table class="dash-table"><tr><th>Purchase ID</th><th>Item</th><th>Qty</th><th>Cost</th><th>Date</th><th>Actions</th></tr>
+    ${list.map(p=>`<tr><td>${p.purchase_code}</td><td>${p.item_name}</td><td>${p.quantity}</td><td>Rs. ${Number(p.cost).toLocaleString()}</td><td>${p.purchase_date}</td>
+      <td><button class="small-btn" onclick='openPurchaseForm(${JSON.stringify(p).replace(/'/g,"&apos;")})'>Edit</button>
+      <button class="small-btn danger" onclick="deletePurchase(${p.id})">Delete</button></td></tr>`).join('')
+      || `<tr><td colspan="6" style="text-align:center;color:var(--gray);">${LIVE?'No purchase records yet':'Connect the PHP backend to manage purchase records'}</td></tr>`}
+    </table></div>`;
+}
+function openPurchaseForm(p){
+  const editing = !!p;
+  openCrudModal(editing?'Edit Purchase Record':'Add Purchase Record', `
+    <div class="field"><label>Item Name</label><input id="prItem" value="${p?p.item_name:''}"></div>
+    <div class="field"><label>Quantity</label><input id="prQty" type="number" value="${p?p.quantity:1}"></div>
+    <div class="field"><label>Cost (Rs.)</label><input id="prCost" type="text" inputmode="decimal" value="${p?p.cost:0}"></div>
+    <div class="field"><label>Purchase Date</label><input id="prDate" type="date" value="${p?p.purchase_date:new Date().toISOString().slice(0,10)}"></div>
+  `, async ()=>{
+    const payload = { itemName: fv('prItem'), quantity: Number(fv('prQty')), cost: Number(fv('prCost')), purchaseDate: fv('prDate') };
+    if(!payload.itemName){ alert('Item name is required.'); return; }
+    if(!LIVE){ alert('Connect the PHP backend (WAMP) to manage purchase records.'); return; }
+    try{
+      if(editing) await api('/inventory.php?section=purchases&id='+p.id, {method:'PUT', body:payload});
+      else await api('/inventory.php?section=purchases', {method:'POST', body:payload});
+    }catch(e){ alert(e.message); return; }
+    closeCrudModal(); showAdminTab('purchases', document.querySelector('.side-link.on'));
+  });
+}
+async function deletePurchase(id){
+  if(!confirm('Delete this purchase record?')) return;
+  if(!LIVE){ alert('Connect the PHP backend to manage purchase records.'); return; }
+  try{ await api('/inventory.php?section=purchases&id='+id, {method:'DELETE'}); }catch(e){ alert(e.message); }
+  showAdminTab('purchases', document.querySelector('.side-link.on'));
+}
+
+/* ============ SUPPLIER ORDERS CRUD ============ */
+async function renderSupplierOrders(c){
+  let list = [];
+  if(LIVE){ try{ list = await api('/inventory.php?section=supplier-orders'); }catch(e){} }
+  c.innerHTML = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h4>Supplier Orders</h4><button class="btn btn-primary" onclick="openSupplierOrderForm()">+ Add Order</button>
+    </div>
+    <table class="dash-table"><tr><th>Order ID</th><th>Item</th><th>Qty</th><th>Cost</th><th>Date</th><th>Status</th><th>Actions</th></tr>
+    ${list.map(o=>`<tr><td>${o.order_code}</td><td>${o.item_name}</td><td>${o.quantity}</td><td>Rs. ${Number(o.cost).toLocaleString()}</td><td>${o.order_date}</td>
+      <td><select class="avail-select" onchange="setOrderStatus(${o.id},this.value)">
+        ${['ordered','received','returned'].map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}
+      </select></td>
+      <td><button class="small-btn" onclick='openSupplierOrderForm(${JSON.stringify(o).replace(/'/g,"&apos;")})'>Edit</button>
+      <button class="small-btn danger" onclick="deleteSupplierOrder(${o.id})">Delete</button></td></tr>`).join('')
+      || `<tr><td colspan="7" style="text-align:center;color:var(--gray);">${LIVE?'No supplier orders yet':'Connect the PHP backend to manage supplier orders'}</td></tr>`}
+    </table></div>`;
+}
+function openSupplierOrderForm(o){
+  const editing = !!o;
+  openCrudModal(editing?'Edit Supplier Order':'Add Supplier Order', `
+    <div class="field"><label>Item Name</label><input id="soItem" value="${o?o.item_name:''}"></div>
+    <div class="field"><label>Quantity</label><input id="soQty" type="number" value="${o?o.quantity:1}"></div>
+    <div class="field"><label>Cost (Rs.)</label><input id="soCost" type="text" inputmode="decimal" value="${o?o.cost:0}"></div>
+    <div class="field"><label>Order Date</label><input id="soDate" type="date" value="${o?o.order_date:new Date().toISOString().slice(0,10)}"></div>
+    <div class="field"><label>Status</label><select id="soStatus">${['ordered','received','returned'].map(s=>`<option value="${s}" ${o&&o.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+  `, async ()=>{
+    const payload = { itemName: fv('soItem'), quantity: Number(fv('soQty')), cost: Number(fv('soCost')), orderDate: fv('soDate'), status: fv('soStatus') };
+    if(!payload.itemName){ alert('Item name is required.'); return; }
+    if(!LIVE){ alert('Connect the PHP backend to manage supplier orders.'); return; }
+    try{
+      if(editing) await api('/inventory.php?section=supplier-orders&id='+o.id, {method:'PUT', body:payload});
+      else await api('/inventory.php?section=supplier-orders', {method:'POST', body:payload});
+    }catch(e){ alert(e.message); return; }
+    closeCrudModal(); showAdminTab('supplierOrders', document.querySelector('.side-link.on'));
+  });
+}
+async function setOrderStatus(id, status){
+  if(!LIVE){ alert('Connect the PHP backend to manage supplier orders.'); return; }
+  try{ await api('/inventory.php?section=supplier-orders&id='+id, {method:'PATCH', body:{status}}); }catch(e){ alert(e.message); }
+}
+async function deleteSupplierOrder(id){
+  if(!confirm('Delete this supplier order?')) return;
+  if(!LIVE){ alert('Connect the PHP backend to manage supplier orders.'); return; }
+  try{ await api('/inventory.php?section=supplier-orders&id='+id, {method:'DELETE'}); }catch(e){ alert(e.message); }
+  showAdminTab('supplierOrders', document.querySelector('.side-link.on'));
+}
+
+/* ============ PAYMENTS ============ */
+async function renderPayments(c){
+  let list = [];
+  if(LIVE){ try{ list = await api('/admin.php?action=payments'); }catch(e){} }
+  else { const all = db('bookings',[]); list = all.map((b,i)=>({id:i, booking_code:b.id, total:b.total, payment_method:b.pay, status:'success'})); }
+  c.innerHTML = `<div class="card"><h4 style="margin-bottom:12px;">Payments</h4>
+   <table class="dash-table"><tr><th>Booking</th><th>Amount</th><th>Method</th><th>Status</th><th>Actions</th></tr>
+   ${list.map(p=>`<tr><td>${p.booking_code}</td><td>Rs.${Number(p.total).toLocaleString()}</td><td>${p.payment_method}</td>
+     <td><select class="avail-select" onchange="setPaymentStatus(${p.id},this.value)" ${LIVE?'':'disabled'}>
+       ${['pending','success','failed','refunded'].map(s=>`<option value="${s}" ${p.status===s?'selected':''}>${s}</option>`).join('')}
+     </select></td>
+     <td><button class="small-btn" onclick='openPaymentForm(${JSON.stringify(p).replace(/'/g,"&apos;")})'>Edit</button>
+     <button class="small-btn danger" onclick="deletePayment(${p.id})">Delete</button></td></tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--gray);">No payments yet</td></tr>'}
+   </table></div>`;
+}
+function openPaymentForm(p){
+  openCrudModal('Edit Payment — ' + p.booking_code, `
+    <div class="field"><label>Amount (Rs.)</label><input id="pyAmount" type="text" inputmode="decimal" value="${p.amount||p.total}"></div>
+    <div class="field"><label>Total (Rs.)</label><input id="pyTotal" type="text" inputmode="decimal" value="${p.total}"></div>
+    <div class="field"><label>Payment Method</label><select id="pyMethod">${['PayPal','Card','Cash','BankTransfer'].map(m=>`<option ${p.payment_method===m?'selected':''}>${m}</option>`).join('')}</select></div>
+    <div class="field"><label>Status</label><select id="pyStatus">${['pending','success','failed','refunded'].map(s=>`<option value="${s}" ${p.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+  `, async ()=>{
+    if(!LIVE){ alert('Connect the PHP backend to edit payments.'); return; }
+    const payload = { amount: Number(fv('pyAmount')), total: Number(fv('pyTotal')), paymentMethod: fv('pyMethod'), status: fv('pyStatus') };
+    try{ await api('/admin.php?action=payments&id='+p.id, {method:'PUT', body:payload}); }catch(e){ alert(e.message); return; }
+    closeCrudModal(); showAdminTab('payments', document.querySelector('.side-link.on'));
+  });
+}
+async function setPaymentStatus(id, status){
+  if(!LIVE){ alert('Connect the PHP backend to update payment status.'); return; }
+  try{ await api('/admin.php?action=payments&id='+id, {method:'PATCH', body:{status}}); }catch(e){ alert(e.message); }
+}
+async function deletePayment(id){
+  if(!confirm('Delete this payment record?')) return;
+  if(!LIVE){ alert('Connect the PHP backend to delete payments.'); return; }
+  try{ await api('/admin.php?action=payments&id='+id, {method:'DELETE'}); }catch(e){ alert(e.message); }
+  showAdminTab('payments', document.querySelector('.side-link.on'));
+}
+
+/* ============ REVIEWS ============ */
+async function renderReviews(c){
+  let list = [];
+  try{ list = await api('/reviews.php'); }
+  catch(e){ list = db('customerReviews', []); }
+  c.innerHTML = `<div class="card"><h4 style="margin-bottom:12px;">Customer Reviews</h4>
+   ${list.map(r=>`<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+     <div><b>${r.reviewer_name||r.guest_name||r.name}</b> — ${'★'.repeat(r.rating||r.stars)}<p style="font-size:13px;color:var(--gray);">${r.comment||r.text}</p></div>
+     ${LIVE?`<div style="display:flex;gap:6px;flex-shrink:0;">
+       <button class="small-btn" onclick='openReviewForm(${JSON.stringify(r).replace(/'/g,"&apos;")})'>Edit</button>
+       <button class="small-btn danger" onclick="deleteReview(${r.id})">Delete</button></div>`:''}
+   </div>`).join('') || '<p style="color:var(--gray);">No reviews yet.</p>'}
+   </div>`;
+}
+function openReviewForm(r){
+  openCrudModal('Edit Review', `
+    <div class="field"><label>Reviewer Name</label><input id="rvName2" value="${r.reviewer_name||r.guest_name||''}"></div>
+    <div class="field"><label>Rating</label><select id="rvRating2">${[5,4,3,2,1].map(n=>`<option value="${n}" ${r.rating==n?'selected':''}>${'★'.repeat(n)}</option>`).join('')}</select></div>
+    <div class="field"><label>Comment</label><textarea id="rvComment2" rows="4">${r.comment||''}</textarea></div>
+  `, async ()=>{
+    const payload = { name: fv('rvName2'), rating: Number(fv('rvRating2')), comment: fv('rvComment2') };
+    try{ await api('/reviews.php?id='+r.id, {method:'PUT', body:payload}); }catch(e){ alert(e.message); return; }
+    closeCrudModal(); showAdminTab('reviews', document.querySelector('.side-link.on'));
+  });
+}
+async function deleteReview(id){
+  if(!confirm('Delete this review?')) return;
+  try{ await api('/reviews.php?id='+id, {method:'DELETE'}); }catch(e){ alert(e.message); }
+  showAdminTab('reviews', document.querySelector('.side-link.on'));
+}
+
+/* ============ EMPLOYEES & TECHNICIANS ============ */
+const STAFF_ROLE_OPTIONS = ['super_admin','manager','cashier','receptionist','mechanic','car_wash_staff','inventory_manager'];
+async function renderEmployees(c){
+  let list = [];
+  if(LIVE){ try{ list = await api('/employees.php'); }catch(e){} }
+  c.innerHTML = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h4>Employees & Technicians</h4><button class="btn btn-primary" onclick="openEmployeeForm()" ${LIVE?'':'disabled title="Connect the PHP backend to add employees"'}>+ Add Employee</button>
+    </div>
+    <table class="dash-table"><tr><th>Name</th><th>Position</th><th>Phone</th><th>Login Access</th><th>Availability</th><th>Actions</th></tr>
+    ${list.map(e=>`<tr><td>${e.name}</td><td>${e.position||'-'}</td><td>${e.phone||'-'}</td>
+      <td>${e.login_email?`<span class="badge green">${e.login_email} (${e.login_role})</span>`:'<span class="badge yellow">No login</span>'}</td>
+      <td><select class="avail-select" onchange="setEmployeeAvailability(${e.id},this.value)">
+        ${['available','busy','off'].map(s=>`<option value="${s}" ${e.availability===s?'selected':''}>${s}</option>`).join('')}
+      </select></td>
+      <td><button class="small-btn" onclick='openEmployeeForm(${JSON.stringify(e).replace(/'/g,"&apos;")})'>Edit</button>
+      <button class="small-btn danger" onclick="deleteEmployee(${e.id})">Delete</button></td></tr>`).join('')
+      || `<tr><td colspan="6" style="text-align:center;color:var(--gray);">${LIVE?'No employees yet':'Connect the PHP backend to manage employees'}</td></tr>`}
+    </table></div>`;
+}
+function openEmployeeForm(e){
+  const editing = !!e;
+  openCrudModal(editing?'Edit Employee':'Add Employee / Technician', `
+    <div class="field"><label>Full Name</label><input id="epName" value="${e?e.name:''}"></div>
+    <div class="field"><label>Position</label><input id="epPosition" value="${e&&e.position?e.position:''}" placeholder="e.g. Mechanic, Car Wash Staff"></div>
+    <div class="field"><label>Phone</label><input id="epPhone" value="${e&&e.phone?e.phone:''}"></div>
+    <div class="field"><label>Salary (Rs.)</label><input id="epSalary" type="text" inputmode="decimal" value="${e&&e.salary?e.salary:''}"></div>
+    <div class="field"><label>Skills</label><input id="epSkills" value="${e&&e.skills?e.skills:''}" placeholder="e.g. Engine repair, AC service"></div>
+    <div class="field"><label>Availability</label><select id="epAvailability">${['available','busy','off'].map(s=>`<option value="${s}" ${e&&e.availability===s?'selected':''}>${s}</option>`).join('')}</select></div>
+    ${!editing ? `
+    <div class="field" style="border-top:1px solid var(--border);padding-top:14px;">
+      <label><input type="checkbox" id="epCreateLogin" onchange="document.getElementById('epLoginFields').classList.toggle('hide', !this.checked)"> Create a login account for this person</label>
+    </div>
+    <div id="epLoginFields" class="hide">
+      <div class="field"><label>Login Email</label><input id="epEmail" type="email" placeholder="technician@rapidauto.lk"></div>
+      <div class="field"><label>Password</label><input id="epPassword" type="password" placeholder="At least 6 characters"></div>
+      <div class="field"><label>Role</label><select id="epRole">${STAFF_ROLE_OPTIONS.map(r=>`<option value="${r}">${r.replace('_',' ')}</option>`).join('')}</select></div>
+    </div>` : e.login_email ? `<p style="font-size:12px;color:var(--gray);">Login: <b>${e.login_email}</b> (${e.login_role}). Login credentials aren't editable here for security — reset via Forgot Password.</p>` : ''}
+  `, async ()=>{
+    const payload = {
+      name: fv('epName'), position: fv('epPosition'), phone: fv('epPhone'),
+      salary: fv('epSalary')?Number(fv('epSalary')):null, skills: fv('epSkills'), availability: fv('epAvailability'),
+    };
+    if(!payload.name){ alert('Name is required.'); return; }
+    if(!editing && document.getElementById('epCreateLogin')?.checked){
+      payload.createLogin = true;
+      payload.email = fv('epEmail'); payload.password = fv('epPassword'); payload.role = fv('epRole');
+      if(!payload.email || !payload.password){ alert('Email and password are required to create a login.'); return; }
+      if(payload.password.length < 6){ alert('Password must be at least 6 characters.'); return; }
+    }
+    if(!LIVE){ alert('Connect the PHP backend to manage employees.'); return; }
+    try{
+      if(editing) await api('/employees.php?id='+e.id, {method:'PUT', body:payload});
+      else await api('/employees.php', {method:'POST', body:payload});
+    }catch(err){ alert(err.message); return; }
+    closeCrudModal(); showAdminTab('employees', document.querySelector('.side-link.on'));
+  });
+}
+async function setEmployeeAvailability(id, availability){
+  if(!LIVE){ alert('Connect the PHP backend to update availability.'); return; }
+  try{ await api('/employees.php?id='+id, {method:'PATCH', body:{availability}}); }catch(e){ alert(e.message); }
+}
+async function deleteEmployee(id){
+  if(!confirm('Remove this employee? Their login account (if any) stays but becomes unlinked.')) return;
+  if(!LIVE){ alert('Connect the PHP backend to manage employees.'); return; }
+  try{ await api('/employees.php?id='+id, {method:'DELETE'}); }catch(e){ alert(e.message); }
+  showAdminTab('employees', document.querySelector('.side-link.on'));
+}
+
+/* ============ REPORTS ============ */
+let currentPeriod = 'monthly';
+async function renderReports(c){
+  c.innerHTML = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:6px;">
+      <h4>Business Reports</h4>
+      <button class="btn btn-primary" onclick="downloadReportPDF()">⬇ Download PDF Report</button>
+    </div>
+    <div class="tab-row-sm" id="periodTabs">
+      ${['daily','weekly','monthly','yearly'].map(p=>`<button class="${p===currentPeriod?'on':''}" onclick="setPeriod('${p}')">${p[0].toUpperCase()+p.slice(1)}</button>`).join('')}
+    </div>
+    <div id="reportBody">${LIVE?'<p style="color:var(--gray);">Loading report…</p>':'<p style="color:var(--gray);">Connect the PHP backend (WAMP) to generate live reports.</p>'}</div>
+  </div>`;
+  if(LIVE) loadReport();
+}
+function setPeriod(p){ currentPeriod = p; showAdminTab('reports', document.querySelector('.side-link.on')); }
+let lastReportData = null;
+async function loadReport(){
+  try{
+    const r = await api('/reports.php?period='+currentPeriod);
+    lastReportData = r;
+    const s = r.summary;
+    document.getElementById('reportBody').innerHTML = `
+      <div class="kpi-grid">
+        <div class="kpi"><span>Total Revenue</span><b>Rs. ${s.totalRevenue.toLocaleString()}</b></div>
+        <div class="kpi"><span>Service Revenue</span><b>Rs. ${s.serviceRevenue.toLocaleString()}</b></div>
+        <div class="kpi"><span>Shop Revenue</span><b>Rs. ${s.shopRevenue.toLocaleString()}</b></div>
+        <div class="kpi"><span>Total Customers</span><b>${s.totalCustomers}</b></div>
+        <div class="kpi"><span>Total Bookings</span><b>${s.totalBookings}</b></div>
+        <div class="kpi"><span>Completed</span><b>${s.completedBookings}</b></div>
+        <div class="kpi"><span>Cancelled</span><b>${s.cancelledBookings}</b></div>
+        <div class="kpi"><span>Low Stock Items</span><b>${s.lowStockItems}</b></div>
+      </div>
+      <div class="card" style="margin-bottom:16px;"><h4 style="margin-bottom:10px;">Bookings Trend (${currentPeriod})</h4>
+        <table class="dash-table"><tr><th>Period</th><th>Bookings</th><th>Revenue</th></tr>
+        ${r.bookingsTrend.map(t=>`<tr><td>${t.period}</td><td>${t.count}</td><td>Rs. ${Number(t.revenue).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--gray);">No data</td></tr>'}
+        </table></div>
+      <div class="card" style="margin-bottom:16px;"><h4 style="margin-bottom:10px;">Top Services</h4>
+        <table class="dash-table"><tr><th>Service</th><th>Times Booked</th><th>Revenue</th></tr>
+        ${r.topServices.map(t=>`<tr><td>${t.service_name}</td><td>${t.times_booked}</td><td>Rs. ${Number(t.revenue).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--gray);">No data</td></tr>'}
+        </table></div>
+      <div class="card"><h4 style="margin-bottom:10px;">Payment Method Breakdown</h4>
+        <table class="dash-table"><tr><th>Method</th><th>Count</th><th>Total</th></tr>
+        ${r.paymentBreakdown.map(t=>`<tr><td>${t.payment_method}</td><td>${t.count}</td><td>Rs. ${Number(t.total).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--gray);">No data</td></tr>'}
+        </table></div>`;
+  }catch(e){ document.getElementById('reportBody').innerHTML = `<p style="color:#dc2626;">${e.message}</p>`; }
+}
+function downloadReportPDF(){
+  if(!lastReportData){ alert('Report data not loaded yet — connect the PHP backend and wait for it to load.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const r = lastReportData, s = r.summary;
+  doc.setFontSize(18); doc.setTextColor(15,23,42); doc.text('Rapid Auto Service Center', 14, 20);
+  doc.setFontSize(11); doc.setTextColor(100); doc.text(`Business Report — ${currentPeriod.toUpperCase()}`, 14, 27);
+  doc.text('Generated: ' + r.generatedAt, 14, 33);
+  doc.setDrawColor(226,232,240); doc.line(14, 38, 196, 38);
+  let y = 50; doc.setFontSize(12);
+  const row = (label, val) => { doc.setTextColor(100); doc.text(label, 14, y); doc.setTextColor(15,23,42); doc.text(String(val), 100, y); y += 8; };
+  row('Total Revenue:', 'Rs. ' + s.totalRevenue.toLocaleString());
+  row('Service Revenue:', 'Rs. ' + s.serviceRevenue.toLocaleString());
+  row('Shop Revenue:', 'Rs. ' + s.shopRevenue.toLocaleString());
+  row('Total Bookings:', s.totalBookings);
+  row('Completed:', s.completedBookings);
+  row('Cancelled:', s.cancelledBookings);
+  row('Total Customers:', s.totalCustomers);
+  row('Low Stock Items:', s.lowStockItems);
+  y += 6; doc.setFontSize(13); doc.setTextColor(15,23,42); doc.text('Top Services', 14, y); y += 8; doc.setFontSize(10);
+  r.topServices.slice(0,8).forEach(t=>{ doc.setTextColor(60); doc.text(`${t.service_name} — ${t.times_booked}x`, 14, y); doc.text('Rs. '+Number(t.revenue).toLocaleString(), 170, y, {align:'right'}); y+=7; });
+  doc.save(`rapidauto-report-${currentPeriod}-${Date.now()}.pdf`);
+}
+
+showAdminTab('overview', document.querySelector('.side-link.on'));
+</script>
+</body>
+</html>

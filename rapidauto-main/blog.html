@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog & News — Rapid Auto Service Center</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.article-modal{position:fixed;inset:0;background:rgba(15,23,42,.65);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;}
+.article-panel{background:#fff;border-radius:18px;max-width:680px;width:100%;max-height:85vh;overflow:auto;padding:0;}
+.article-panel img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:18px 18px 0 0;}
+.article-panel .ap-body{padding:30px;}
+.article-panel h2{font-size:24px;margin-bottom:6px;}
+.article-panel .meta{font-size:12.5px;color:var(--gray);margin-bottom:18px;}
+.article-panel p{font-size:14.5px;line-height:1.7;color:#334155;margin-bottom:14px;}
+</style>
+</head>
+<body>
+<div class="page-hero">
+  <div class="page-hero-inner">
+    <div class="crumbs"><a href="index.html">Home</a> / Blog & News</div>
+    <h1>Blog & News</h1>
+    <p>Vehicle care tips, service news, and the latest trends shaping what people drive.</p>
+  </div>
+</div>
+
+<section>
+  <div class="blog-grid" id="blogGrid"></div>
+</section>
+
+<div id="articleModal"></div>
+
+<script src="app.js"></script>
+<script>
+const ARTICLES = [
+ {id:1,tag:"EV Trends",featured:true,
+  img:"https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=900&h=650&fit=crop",
+  title:"Why Electric Vehicles Need a Completely Different Wash Routine",
+  meta:"6 min read · Vehicle Trends",
+  excerpt:"EVs bring exposed charging ports, low-hanging battery packs, and regenerative brakes that behave differently under pressure washing. Here's what changes.",
+  body:`As electric vehicles become more common on Sri Lankan roads, the way they're washed needs to change too. The charging port is the most sensitive area — most manufacturers rate it for splash resistance, not direct high-pressure spray, so technicians should hand-wash or use low-pressure rinse around that zone rather than blasting it directly.
+
+Battery packs sit low along the underbody on most EVs, and while they're sealed, repeated high-pressure underbody washing over years can wear at seals faster than on a combustion vehicle with a simpler underbody. A gentler underbody rinse, done more frequently, tends to be the safer approach.
+
+Regenerative braking also means EVs generate less brake dust than petrol or diesel cars, so wheels often need less aggressive degreasing — a lighter wheel-cleaning solution usually gets the job done without stripping any protective coatings on the rims.
+
+Finally, EVs are heavier due to battery weight, which means tyre contact patches wear differently — something worth a quick visual check during every wash.`},
+ {id:2,tag:"Maintenance",
+  img:"https://images.unsplash.com/photo-1601362840469-51e4d8d58785?w=700&h=450&fit=crop",
+  title:"Ceramic Coating vs Wax: What's Actually Worth It in 2026",
+  meta:"4 min read · Maintenance",
+  excerpt:"Wax is cheaper and easier to reapply. Ceramic coating costs more upfront but lasts years. Here's how to decide which fits your vehicle and budget.",
+  body:`Traditional carnauba wax has been the go-to paint protectant for decades. It's affordable, easy to apply, and gives a warm, deep shine — but it typically only lasts 4-6 weeks before it needs reapplying, especially in Sri Lanka's heat and humidity.
+
+Ceramic coating works differently: it chemically bonds to the clear coat, forming a semi-permanent layer that can last 2-5 years depending on the product and how well the vehicle is maintained afterward. It also adds real hydrophobic properties, meaning water and dirt bead off far more easily, which in turn makes every future wash faster and less abrasive on the paint.
+
+The trade-off is cost — a quality ceramic coating job costs significantly more than a wax treatment, and it doesn't fully eliminate the need for regular washing or protect against stone chips the way a full paint protection film does.
+
+For daily drivers that see a lot of sun and dust, ceramic coating tends to pay for itself over a couple of years in reduced detailing costs. For vehicles washed frequently and kept mostly garaged, a good wax routine every month or two is often perfectly sufficient.`},
+ {id:3,tag:"News",
+  img:"https://images.unsplash.com/photo-1553440569-bcc63803a83d?w=700&h=450&fit=crop",
+  title:"Sri Lanka's Hybrid Vehicle Boom: What Owners Should Know",
+  meta:"5 min read · Industry News",
+  excerpt:"Hybrid imports have risen sharply in recent years. Here's what that means for maintenance schedules, wash habits, and resale value.",
+  body:`Hybrid vehicles have become one of the fastest-growing vehicle categories on Sri Lankan roads, driven by fuel costs and import policy changes favoring lower-emission vehicles. For owners, this shift brings a few practical considerations.
+
+Hybrid systems combine a combustion engine with an electric motor and battery pack, which means there are more sealed electrical components under the hood and along the underbody than in a purely petrol vehicle. As with full EVs, this calls for a bit more care around high-pressure washing near electrical housings, though hybrids are generally built with everyday washing in mind.
+
+Because the electric motor handles a lot of low-speed driving, brake wear patterns on hybrids also tend to differ — regenerative braking reduces reliance on the physical brake pads, meaning less brake dust but sometimes more attention needed on rotor condition during routine inspection, since they see less regular use.
+
+Resale-wise, well-maintained hybrids — including a documented wash and service history — have been holding value well in the current market, as buyers increasingly weigh long-term fuel savings against the vehicle's upkeep record.`},
+ {id:4,tag:"Tips",
+  img:"https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=700&h=450&fit=crop",
+  title:"5 Signs Your Vehicle Needs More Than a Wash",
+  meta:"3 min read · Vehicle Tips",
+  excerpt:"A clean exterior can hide underlying issues. These five signs mean it's time to book a full inspection, not just a wash.",
+  body:`A shiny exterior doesn't always mean a healthy vehicle. Here are five signs worth paying attention to next time you bring your car in:
+
+1. Uneven tyre wear — often a sign of misalignment or suspension issues, and something our technicians flag during every wash if noticed.
+2. A lingering burning smell after driving — usually points to brake or clutch wear worth inspecting immediately.
+3. Dashboard warning lights that come and go — even intermittent lights are worth diagnosing rather than ignoring.
+4. Engine bay grime buildup — beyond looks, heavy grime can trap heat and hide small leaks that are easier to catch early.
+5. A noticeably rougher ride than a few months ago — often suspension or tyre pressure related, and easy to check during a routine visit.
+
+Our team can flag any of these during a standard wash and recommend the right additional service — from wheel alignment to full engine diagnostics — before small issues become expensive ones.`},
+ {id:5,tag:"Trends",
+  img:"https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=700&h=450&fit=crop",
+  title:"Self-Driving Features Are Reaching Everyday Cars — Here's What's Changing",
+  meta:"5 min read · Industry Trends",
+  excerpt:"Driver-assist tech like lane-keeping and adaptive cruise is now standard on many mid-range vehicles. Here's what it means for upkeep.",
+  body:`Features once reserved for premium vehicles — lane-keeping assist, adaptive cruise control, automatic emergency braking — are increasingly standard on mid-range cars entering the Sri Lankan market. These systems rely on a network of sensors and cameras mounted around the vehicle, often behind the windscreen, in the front grille, and along the bumpers.
+
+This has a direct impact on vehicle care: sensor housings need to stay clean and undamaged for these systems to work correctly, and a small crack or heavy grime buildup on a sensor cover can disable a safety feature without an obvious warning to the driver. When washing these vehicles, technicians now check sensor areas as a standard part of the exterior inspection.
+
+It also means minor bumper damage — previously a cosmetic-only concern — can now affect a vehicle's safety systems, making prompt repair more important than it used to be.`},
+ {id:6,tag:"Tips",
+  img:"https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=700&h=450&fit=crop",
+  title:"How Often Should You Really Wash Your Car in Sri Lanka's Climate?",
+  meta:"3 min read · Vehicle Tips",
+  excerpt:"Humidity, dust, and monsoon rain all affect your paint differently. Here's a realistic washing schedule by season.",
+  body:`Sri Lanka's climate puts extra demands on a vehicle's paint and undercarriage compared to drier climates. During the dry season, dust and pollen buildup is the main concern — a wash every 1-2 weeks keeps particulates from embedding into the clear coat.
+
+During monsoon months, the bigger risk is what rain leaves behind: road grime, acidic runoff, and standing water that can accelerate rust on the underbody. A rinse after any significant rain exposure — particularly focused on the underbody and wheel wells — helps prevent long-term corrosion, even if it means washing more frequently than you would in dry weather.
+
+Coastal areas add another factor: salt air accelerates corrosion on exposed metal, so vehicles regularly driven near the coast benefit from more frequent underbody rinses regardless of season.
+
+As a simple rule of thumb: weekly in dry season, and after any heavy rain exposure during monsoon months, with extra underbody attention if you're near the coast.`},
+];
+
+function renderBlog(){
+  document.getElementById('blogGrid').innerHTML = ARTICLES.map((a,i)=>`
+    <div class="blog-card reveal ${a.featured?'featured':''}" style="transition-delay:${(i%3)*.05}s" onclick="openArticle(${a.id})">
+      <img src="${a.img}" alt="${a.title}" loading="lazy" onerror="imgFallback(this,'${a.title}')">
+      <div class="bc-body"><span class="blog-tag">${a.tag}</span><h3>${a.title}</h3><p>${a.excerpt}</p>
+      <div class="blog-meta"><span>${a.meta}</span><span>Read more →</span></div></div>
+    </div>`).join('');
+}
+function openArticle(id){
+  const a = ARTICLES.find(x=>x.id===id);
+  document.getElementById('articleModal').innerHTML = `
+    <div class="article-modal" onclick="if(event.target===this) closeArticle()">
+      <div class="article-panel"><img src="${a.img}" alt="${a.title}" onerror="imgFallback(this,'${a.title}')">
+        <div class="ap-body">
+          <span class="blog-tag">${a.tag}</span>
+          <h2>${a.title}</h2><div class="meta">${a.meta}</div>
+          ${a.body.split(/\n\s*\n/).map(p=>`<p>${p}</p>`).join('')}
+          <button class="btn btn-primary" onclick="closeArticle()" style="margin-top:10px;">Close</button>
+        </div>
+      </div>
+    </div>`;
+}
+function closeArticle(){ document.getElementById('articleModal').innerHTML=''; }
+renderBlog();
+</script>
+</body>
+</html>

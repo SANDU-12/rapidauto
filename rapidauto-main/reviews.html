@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reviews — Rapid Auto Service Center</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="page-hero">
+  <div class="page-hero-inner">
+    <div class="crumbs"><a href="index.html">Home</a> / Reviews</div>
+    <h1>Customer Reviews</h1>
+    <p>4.8★ average from over 1,240 customers. Here's what real customers say about their vehicles.</p>
+  </div>
+</div>
+
+<section>
+  <div class="section-head">
+    <div class="eyebrow">Video Testimonials</div>
+    <h2>Hear From Our Customers</h2>
+  </div>
+  <div class="grid-3" id="testimonialVideoGrid"></div>
+</section>
+
+<section>
+  <div class="section-head">
+    <div class="eyebrow">Written Reviews</div>
+    <h2>What Customers Are Saying</h2>
+  </div>
+  <div class="rev-grid" id="revGrid"></div>
+</section>
+
+<section id="leaveReview">
+  <div class="section-head"><div class="eyebrow">Share Your Experience</div><h2>Leave a Review</h2></div>
+  <div class="card" style="max-width:600px;margin:0 auto;">
+    <div class="field"><label>Your Name</label><input id="rvName" placeholder="Your name"></div>
+    <div class="field"><label>Rating</label>
+      <select id="rvStars"><option value="5">★★★★★ Excellent</option><option value="4">★★★★☆ Good</option><option value="3">★★★☆☆ Average</option></select>
+    </div>
+    <div class="field"><label>Your Review</label><textarea id="rvText" rows="4" placeholder="Tell us about your experience"></textarea></div>
+    <button class="btn btn-primary" onclick="submitReview()">Submit Review</button>
+  </div>
+</section>
+
+<script src="app.js"></script>
+<script>
+const REVIEWS = [
+ {name:"Nadeesha K.",stars:5,text:"Super fast service, my car looked brand new. Live tracking is such a nice touch and made waiting stress-free!",img:"https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500&h=320&fit=crop"},
+ {name:"Ruwan S.",stars:5,text:"Booked online in 2 minutes, no waiting around at the center. Highly recommend for busy people.",img:"https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=500&h=320&fit=crop"},
+ {name:"Ishara F.",stars:4,text:"Great wash quality, prices exactly as listed on the sign. Will come back for the wax package.",img:"https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=500&h=320&fit=crop"},
+ {name:"Chathura P.",stars:5,text:"My van comes out looking spotless every time. The vacuum + wash combo is worth every rupee.",img:"https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=500&h=320&fit=crop"},
+ {name:"Dilani W.",stars:5,text:"They caught a brake issue during a routine wash that I had no idea about. Genuinely appreciated the honesty.",img:"https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=500&h=320&fit=crop"},
+ {name:"Malith R.",stars:4,text:"Three-wheeler wash was quick and thorough. Staff were friendly and explained the whole process.",img:"https://images.unsplash.com/photo-1600661653561-629509216228?w=500&h=320&fit=crop"},
+];
+async function renderReviews(){
+  await apiReady;
+  let custom = db('customerReviews', []);
+  if(LIVE){
+    try{
+      const rows = await api('/reviews.php');
+      custom = rows.map(r=>({name:r.reviewer_name||r.guest_name||'Anonymous', stars:Number(r.rating), text:r.comment||''}));
+    }catch(e){
+      console.warn('Could not load reviews from the database:', e);
+    }
+  }
+  const all = [...custom, ...REVIEWS];
+  document.getElementById('revGrid').innerHTML = all.map((r,i)=>`
+  <div class="rev-card reveal in" style="transition-delay:${(i%3)*.05}s">
+   ${r.img?`<img class="rev-photo" src="${r.img}" alt="${r.name} vehicle" onerror="imgFallback(this,'${r.name}')">`:''}
+   <div class="rev-body"><div class="stars">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</div><p>"${r.text}"</p>
+   <div class="rev-who"><div class="avatar">${r.name[0]}</div><b style="font-size:13.5px;">${r.name}</b></div></div></div>`).join('');
+}
+async function submitReview(){
+  const name = document.getElementById('rvName').value.trim();
+  const text = document.getElementById('rvText').value.trim();
+  const stars = parseInt(document.getElementById('rvStars').value);
+  if(!name || !text){ alert('Please enter your name and review.'); return; }
+  try{
+    await api('/reviews.php', {method:'POST', body:{name, rating:stars, comment:text}});
+  }catch(e){
+    alert('Could not save your review to the database. Make sure this project is served by WAMP and that '+API_BASE+'/reviews.php is reachable. ' + e.message);
+    return;
+  }
+  document.getElementById('rvName').value=''; document.getElementById('rvText').value='';
+  await renderReviews();
+  alert('Thanks for your review!');
+}
+renderReviews();
+
+const TESTIMONIAL_VIDEOS = [
+ ['rQsmeao28Ks','Customer Testimonial — Nadeesha'],['56eH7T1z794','Customer Testimonial — Ruwan'],['8cdOHzWMbx4','Customer Testimonial — Ishara'],
+];
+document.getElementById('testimonialVideoGrid').innerHTML = TESTIMONIAL_VIDEOS.map(([id,t])=>videoCard(id,t)).join('');
+</script>
+</body>
+</html>
